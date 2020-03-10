@@ -61,7 +61,7 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
             x2 = m2   
 
         if x1 is None or x2 is None or falloff is None :
-            return
+            return Matrix4x4List(), DoubleList()
 
         falloffEvaluator = self.getFalloffEvaluator(falloff)
         influences = falloffEvaluator.evaluateList(extractMatrixTranslations(x1))
@@ -85,7 +85,7 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
             x2 = v2   
 
         if x1 is None or x2 is None or falloff is None :
-            return
+            return Vector3DList(), DoubleList()
 
         falloffEvaluator = self.getFalloffEvaluator(falloff)
         influences = falloffEvaluator.evaluateList(x1)

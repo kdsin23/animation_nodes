@@ -1,7 +1,6 @@
 import bpy
 from math import *
 from bpy.props import *
-from ... data_structures import PolySpline, BezierSpline, FloatList, DoubleList
 from ... base_types import AnimationNode
 from ... data_structures import DoubleList
 from ... data_structures import Vector3DList
@@ -25,7 +24,8 @@ class fibinocci(bpy.types.Node, AnimationNode):
     def execute(self, x1, x2, count, maxValue):
         if x1 is None or x2 is None:
             return
-        return self.fibonacci(x1, x2, count, maxValue)
+        result = self.fibonacci(x1, x2, count, maxValue)    
+        return DoubleList.fromValues(result) 
 
 
     def fibonacci(self, x1, x2, count, maxValue):
