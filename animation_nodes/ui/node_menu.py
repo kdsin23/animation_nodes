@@ -76,7 +76,7 @@ class BluefoxMenu(bpy.types.Menu):
         insertNode(layout, "an_sinewave", "Sine wave")
         insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
         #insertNode(layout, "an_Tracer", "Object Tracer")
-        insertNode(layout, "an_fibinocci", "Fibinocci")
+        insertNode(layout, "an_fibonacci", "Fibonacci")
 
 class NumberMenu(bpy.types.Menu):
     bl_idname = "AN_MT_number_menu"

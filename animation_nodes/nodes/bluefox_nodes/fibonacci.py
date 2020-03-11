@@ -7,9 +7,9 @@ from ... data_structures import Vector3DList
 
 
 
-class fibinocci(bpy.types.Node, AnimationNode):
-    bl_idname = "an_fibinocci"
-    bl_label = "fibinocci"
+class fibonaccii(bpy.types.Node, AnimationNode):
+    bl_idname = "an_fibonacci"
+    bl_label = "fibonacci"
     
     
     def create(self):
