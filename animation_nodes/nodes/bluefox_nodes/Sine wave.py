@@ -22,7 +22,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
 
     def create(self):
         
-        self.newInput("Integer", "n", "n", value = 10)
+        self.newInput("Integer", "n", "n", value = 10, minValue = 1)
         if self.mode == "ANIMATE":
             self.newInput("Float", "speed", "speed", value = 0.5)
         elif self.mode == "MANUAL":
