@@ -15,8 +15,8 @@ class fibinocci(bpy.types.Node, AnimationNode):
     def create(self):
         self.newInput("Float", "First", "x1")
         self.newInput("Float", "Second", "x2")
-        self.newInput("Integer", "count", "count")
-        self.newInput("Float", "MaxValue", "maxValue")
+        self.newInput("Integer", "count", "count", minValue = 0)
+        self.newInput("Float", "Max Value", "maxValue")
         
         self.newOutput("Float List", "result", "res")
         
