@@ -59,21 +59,22 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
         else:
             x1 = m1
             x2 = m2   
-
-        if x1 is None or x2 is None or falloff is None :
-            return Matrix4x4List(), DoubleList()
-
+        
         falloffEvaluator = self.getFalloffEvaluator(falloff)
         influences = falloffEvaluator.evaluateList(extractMatrixTranslations(x1))
 
         out_matrixlist = Matrix4x4List()
         values = []
+        try:
+            for i, item in enumerate( x1 ):
+                    step_result = self.snap_number( influences[i], step )
+                    values . append(step_result)
+                    out_matrixlist . append( item . lerp( x2[i], step_result ))       
+            return out_matrixlist, DoubleList . fromValues( values )
+            
+        except IndexError:
+            return out_matrixlist, DoubleList . fromValues( values )
 
-        for i, item in enumerate( x1 ):
-                step_result = self.snap_number( influences[i], step )
-                values . append(step_result)
-                out_matrixlist . append( item . lerp( x2[i], step_result ))       
-        return out_matrixlist, DoubleList . fromValues( values )
         
     def Vector_lerp( self, v1, v2, falloff, step ):
 
@@ -84,20 +85,20 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
             x1 = v1
             x2 = v2   
 
-        if x1 is None or x2 is None or falloff is None :
-            return Vector3DList(), DoubleList()
-
         falloffEvaluator = self.getFalloffEvaluator(falloff)
         influences = falloffEvaluator.evaluateList(x1)
 
         out_vectorlist = Vector3DList()
         values = []
+        try:
+            for i, item in enumerate( x1 ):
+                    step_result = self.snap_number( influences[i], step )
+                    values . append( step_result )
+                    out_vectorlist . append( item . lerp( x2[i], step_result ) )       
+            return out_vectorlist, DoubleList . fromValues( values )
 
-        for i, item in enumerate( x1 ):
-                step_result = self.snap_number( influences[i], step )
-                values . append( step_result )
-                out_vectorlist . append( item . lerp( x2[i], step_result ) )       
-        return out_vectorlist, DoubleList . fromValues( values )        
+        except IndexError:
+            return out_vectorlist, DoubleList . fromValues( values )            
 
     def getFalloffEvaluator(self, falloff):
         try: return falloff.getEvaluator("LOCATION")
