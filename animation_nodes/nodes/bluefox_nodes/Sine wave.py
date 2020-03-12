@@ -28,7 +28,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
             self.newInput("Float", "offset", "offset", value = 0)
                
         self.newInput("Float", "frequency", "freq", value = 5.0)
-        self.newInput("Float", "Amplitude", "amp", value = 1.0)
+        self.newInput("Float", "Amplitude", "amp", value = 1.0, minValue = 0.00001)
         self.newInput("Float", "Angle", "angle", value = 360.0)
         self.newInput("Float", "Step gap", "step", value = 0.0, minValue = 0)
         self.newInput("Float", "Fallback", "fallback", hide = True)
