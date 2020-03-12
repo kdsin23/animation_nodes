@@ -6,7 +6,6 @@ from ... data_structures import *
 from ... events import executionCodeChanged
 from ... sockets.info import toListDataType
 from..falloff.custom_falloff import CustomFalloff
-from ..number.c_utils import *
 
 modeItems = [
     ("ANIMATE", "Animated", "Animate on frame", "", 0),
@@ -30,6 +29,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
                
         self.newInput("Float", "frequency", "freq", value = 5.0)
         self.newInput("Float", "Amplitude", "amp", value = 1.0)
+        self.newInput("Float", "Angle", "angle", value = 360.0)
         self.newInput("Float", "Step gap", "step", value = 0.0, minValue = 0)
         self.newInput("Float", "Fallback", "fallback", hide = True)
 
@@ -45,55 +45,34 @@ class Sinewave(bpy.types.Node, AnimationNode):
         elif self.mode == "MANUAL":
             return "execute_Manual"    
 
-    def execute_Animate(self, n, speed, freq, amp, step, fallback):
-
-        if n is None :
-            return
-        if n <= 0: return DoubleList()
+    def execute_Animate(self, n, speed, freq, amp, angle, step, fallback):
         T=bpy.context.scene.frame_current
         offset = T*speed
-        out = self.sinewave_fun(n, offset, freq, amp, step, fallback)
+        out = self.sinewave_fun(n, offset, freq, amp, angle, step, fallback)
         return CustomFalloff(FloatList.fromValues(out), fallback), DoubleList.fromValues(out)
 
-    def execute_Manual(self, n, offset, freq, amp, step, fallback):
-
-        out = self.sinewave_fun(n, offset, freq, amp, step, fallback)
+    def execute_Manual(self, n, offset, freq, amp, angle, step, fallback):
+        out = self.sinewave_fun(n, offset, freq, amp, angle, step, fallback)
         return CustomFalloff(FloatList.fromValues(out), fallback), DoubleList.fromValues(out)   
 
-    def sinewave_fun(self, n, offset, freq, amp, step, fallback):
-
-        if n is None :
-            return
-        if n <= 0: return DoubleList()
-        x=range_DoubleList_StartStep(n, 0, (1 - 0) / n)
+    def sinewave_fun(self, n, offset, freq, amp, angle, step, fallback):
         z=[]
-        for i in x:
-            a=amp*(sin((i*freq)+offset))
+        for i in range(n):
+            a=amp*(sin(((i / n) + (offset/100)) * (freq/100) * angle))
             out=self.snap_number(a, step)
-            z.append(out)
-
+            z.append(self.maprange_fun(out, -(amp), amp, 0, amp))
         return z
 
     def snap_number( self, num, step ):
         step_result = round( num / step ) * step if step != 0 else num
-        return step_result    
+        return step_result 
 
-#unused function
-    """
-    def saw_fun(self, n, offset, freq, amp, step, fallback):
+    def maprange_fun(self, value, leftMin, leftMax, rightMin, rightMax):
+        leftSpan = leftMax - leftMin
+        rightSpan = rightMax - rightMin
+        valueScaled = float(value - leftMin) / float(leftSpan)
+        return rightMin + (valueScaled * rightSpan)       
 
-        if n is None :
-            return
-        if n <= 0: return DoubleList()
-        x=range_DoubleList_StartStep(n, 0, (1 - 0) / n)
-        z=[]
-        for i in x:
-            a = amp - amp * (((i / (freq/10) + (offset/10)) * 2) % 2)
-            out=round(a / step) * step if step != 0 else a
-            z.append(out)
-
-        return z
-    """    
 
         
         
