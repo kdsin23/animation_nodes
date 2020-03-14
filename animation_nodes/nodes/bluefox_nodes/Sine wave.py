@@ -1,4 +1,5 @@
 import bpy
+import numpy as np
 from math import *
 from bpy.props import *
 from ... base_types import AnimationNode
@@ -36,6 +37,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
         self.newOutput("Falloff", "Falloff", "outFalloff")
         self.newOutput("Float List", "strengths", "strengths")
 
+
     def draw(self, layout):
         layout.prop(self, "mode")
 
@@ -46,6 +48,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
             return "execute_Manual"    
 
     def execute_Animate(self, n, speed, freq, amp, angle, step, fallback):
+
         T=bpy.context.scene.frame_current
         offset = T*speed
         out = self.sinewave_fun(n, offset, freq, amp, angle, step, fallback)
@@ -56,21 +59,21 @@ class Sinewave(bpy.types.Node, AnimationNode):
         return CustomFalloff(FloatList.fromValues(out), fallback), DoubleList.fromValues(out)   
 
     def sinewave_fun(self, n, offset, freq, amp, angle, step, fallback):
-        z=[]
-        for i in range(n):
-            a=amp*(sin(((i / n) + (offset/100)) * (freq/100) * angle))
-            out=self.snap_number(a, step)
-            z.append(self.maprange_fun(out, -(amp), amp, 0, amp))
-        return z
+        z=np.linspace(0.00, 1.00, num=n, endpoint=False)
+        k=amp*(np.sin(((z / n) + (offset/1000)) * freq * angle))
+        out=self.maprange_fun((self.snap_number(k, step)), -(amp), amp, 0, amp)
+
+        return out.tolist()
+
 
     def snap_number( self, num, step ):
-        step_result = round( num / step ) * step if step != 0 else num
+        step_result = np.round( num / step ) * step if step != 0 else num
         return step_result 
 
     def maprange_fun(self, value, leftMin, leftMax, rightMin, rightMax):
         leftSpan = leftMax - leftMin
         rightSpan = rightMax - rightMin
-        valueScaled = float(value - leftMin) / float(leftSpan)
+        valueScaled = (value - leftMin) / (leftSpan)
         return rightMin + (valueScaled * rightSpan)       
 
 
