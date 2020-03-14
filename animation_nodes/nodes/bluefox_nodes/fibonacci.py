@@ -1,9 +1,9 @@
 import bpy
-from math import *
+import numpy as np
+from math import radians, pi
 from bpy.props import *
 from ... base_types import AnimationNode
-from ... data_structures import DoubleList
-from ... data_structures import Vector3DList
+from ... data_structures import Vector3DList, DoubleList
 
 modeItems = [
     ("POINTS", "Points", "Vector points", "", 0),
@@ -28,8 +28,11 @@ class fibonaccii(bpy.types.Node, AnimationNode):
         
             self.newOutput("Float List", "result", "res")
         elif self.mode == "POINTS":
+            self.newInput("Boolean", "Align", "align", value = 1)
             self.newInput("Integer", "count", "count", value = 200, minValue = 1)
-            self.newInput("Float", "Scale", "scale", value = 0.5)
+            self.newInput("Integer", "center mask", "m", value = 0, minValue = 0)
+            self.newInput("Float", "angle", "a", value = 137.5)
+            self.newInput("Float", "Scale", "scale", value = 1)
         
             self.newOutput("Vector List", "Points", "Points_out")
 
@@ -43,17 +46,20 @@ class fibonaccii(bpy.types.Node, AnimationNode):
             return "execute_fibonacci_numbers"                
         
 
-    def execute_fibonacci_points(self, count, scale):
-        
-        points = Vector3DList()
-        golden_angle = pi*(3-sqrt(5))
-        for i in range(count):
-            theta = i*golden_angle
-            r= sqrt(i)/ sqrt(count)
-            points.append((r*cos(theta)*scale, r*sin(theta)*scale, 0))
-        return points
+    def execute_fibonacci_points(self,align, count, m, a, scale):
 
-
+        n=np.arange(m,count)
+        golden_angle = radians(a)
+        theta=n*golden_angle
+        if align==1:
+            r=np.sqrt(n)/np.sqrt(count)*scale
+        else:
+            r=np.sqrt(n)*scale
+        x=np.cos(theta)*r
+        y=np.sin(theta)*r
+        z=np.zeros(n.size)
+        points=np.vstack([x,y,z]).T
+        return Vector3DList.fromValues(points)
 
     def execute_fibonacci_numbers(self, x1, x2, count, maxValue):
         if x1 is None or x2 is None:
