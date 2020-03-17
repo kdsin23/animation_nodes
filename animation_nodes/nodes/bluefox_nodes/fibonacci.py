@@ -10,14 +10,12 @@ modeItems = [
     ("NUMBERS", "Numbers", "Numbers", "", 1)
 ]
 
-
 class fibonaccii(bpy.types.Node, AnimationNode):
     bl_idname = "an_fibonacci"
     bl_label = "fibonacci"
 
     mode = EnumProperty(name = "Mode", default = "POINTS",
         items = modeItems, update = AnimationNode.refresh)
-    
     
     def create(self):
         if self.mode == "NUMBERS":
@@ -27,6 +25,7 @@ class fibonaccii(bpy.types.Node, AnimationNode):
             self.newInput("Float", "Max Value", "maxValue")
         
             self.newOutput("Float List", "result", "res")
+
         elif self.mode == "POINTS":
             self.newInput("Boolean", "Align", "align", value = 1)
             self.newInput("Integer", "count", "count", value = 200, minValue = 1)
@@ -45,9 +44,7 @@ class fibonaccii(bpy.types.Node, AnimationNode):
         elif self.mode == "NUMBERS":
             return "execute_fibonacci_numbers"                
         
-
     def execute_fibonacci_points(self,align, count, m, a, scale):
-
         n=np.arange(m,count)
         golden_angle = radians(a)
         theta=n*golden_angle
@@ -70,11 +67,9 @@ class fibonaccii(bpy.types.Node, AnimationNode):
             result.append(r)
             x1 = x2
             x2 = r
-
         if maxValue:
             actualMax = max(map(abs, result))
             if actualMax == 0.0:
                 return result
             result = [x*maxValue/actualMax for x in result]
-
         return DoubleList.fromValues(result)    
