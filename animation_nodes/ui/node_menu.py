@@ -19,8 +19,6 @@ def drawMenu(self, context):
 
     layout.operator("an.node_search", text = "Search", icon = "VIEWZOOM")
     layout.separator()
-    layout.menu("AN_MT_bluefox_menu", text = "Bluefox Nodes", icon = "MESH_MONKEY")
-    layout.separator()
     layout.menu("AN_MT_number_menu", text = "Number", icon = "LINENUMBERS_ON")
     layout.menu("AN_MT_vector_menu", text = "Vector", icon = "EXPORT")
     layout.menu("AN_MT_rotation_menu", text = "Rotation", icon = "FILE_REFRESH")
@@ -42,7 +40,6 @@ def drawMenu(self, context):
     layout.menu("AN_MT_action_menu", text = "Action", icon = "ANIM_DATA")
     layout.menu("AN_MT_fcurve_menu", text = "FCurves", icon = "FCURVE")
     layout.menu("AN_MT_material_menu", text = "Material", icon = "NODE_MATERIAL")
-    layout.menu("AN_MT_texture_menu", text = "Texture", icon = "TEXTURE_DATA")
     layout.menu("AN_MT_sound_menu", text = "Sound", icon = "SPEAKER")
     layout.menu("AN_MT_sequence_menu", text = "Sequence", icon = "SEQUENCE")
     layout.separator()
@@ -65,18 +62,6 @@ def drawNodeTreeChooser(layout, context):
 def createNodeTree():
     tree = bpy.data.node_groups.new("AN Tree", "an_AnimationNodeTree")
     bpy.context.space_data.node_tree = tree
-
-
-class BluefoxMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_bluefox_menu"
-    bl_label = "Bluefox Menu"
-
-    def draw(self, context):
-        layout = self.layout
-        insertNode(layout, "an_sinewave", "Sine wave")
-        insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
-        #insertNode(layout, "an_Tracer", "Object Tracer")
-        insertNode(layout, "an_fibonacci", "Fibonacci")
 
 class NumberMenu(bpy.types.Menu):
     bl_idname = "AN_MT_number_menu"
@@ -459,7 +444,6 @@ class MeshOperatorsMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_FindClosePointsNode", "Find Close Points")
-        insertNode(layout, "an_FindShortestPathNode", "Find Shortest Path")
         insertNode(layout, "an_EdgeToTubeNode", "Edge to Tube")
         layout.separator()
         insertNode(layout, "an_CreateEdgesNode", "Create Edges")
@@ -629,25 +613,11 @@ class MaterialMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_DataInputNode", "Material", {"assignedType" : repr("Material")})
-        insertNode(layout, "an_BlendDataByNameNode", "Material By Name", {"dataType" : repr("Material")})
         insertNode(layout, "an_ObjectMaterialOutputNode", "Object Material Output")
         insertNode(layout, "an_SetPolygonMaterialIndexNode", "Set Polygon Material Index")
         insertNode(layout, "an_CyclesMaterialOutputNode", "Cycles Material Output")
         insertNode(layout, "an_MaterialOutputNode", "Material Output")
         insertNode(layout, "an_GPMaterialOutputNode", "GP Material Output")
-        insertNode(layout, "an_MaterialAttributeInputNode", "Material Attribute Input")
-        insertNode(layout, "an_MaterialAttributeOutputNode", "Material Attribute Output")
-        insertNode(layout, "an_FilterBlendDataListByNameNode", "Filter Material List", {"dataType" : repr("Material")})
-        layout.separator()
-        insertNode(layout, "an_MaterialInstancerNode", "Material Instancer")
-
-class TexturelMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_texture_menu"
-    bl_label = "Texture Menu"
-
-    def draw(self, context):
-        layout = self.layout
-        insertNode(layout, "an_TextureInputNode", "Texture Input")
 
 class ParticleSystemMenu(bpy.types.Menu):
     bl_idname = "AN_MT_particle_system_menu"
@@ -658,7 +628,6 @@ class ParticleSystemMenu(bpy.types.Menu):
         insertNode(layout, "an_ParticleSystemsFromObjectNode", "From Object")
         insertNode(layout, "an_ParticleSystemParticlesDataNode", "Particles Data")
         insertNode(layout, "an_ParticleSystemHairDataNode", "Hair Data")
-        insertNode(layout, "an_ParticlesOutputNode", "Particles Data Output")
 
 class FCurveMenu(bpy.types.Menu):
     bl_idname = "AN_MT_fcurve_menu"
