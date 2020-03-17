@@ -21,7 +21,6 @@ class Sinewave(bpy.types.Node, AnimationNode):
         items = modeItems, update = AnimationNode.refresh)
 
     def create(self):
-        
         self.newInput("Integer", "n", "n", value = 10, minValue = 1)
         if self.mode == "ANIMATE":
             self.newInput("Float", "speed", "speed", value = 0.5)
@@ -36,7 +35,6 @@ class Sinewave(bpy.types.Node, AnimationNode):
 
         self.newOutput("Falloff", "Falloff", "outFalloff")
         self.newOutput("Float List", "strengths", "strengths")
-
 
     def draw(self, layout):
         layout.prop(self, "mode")
@@ -62,9 +60,7 @@ class Sinewave(bpy.types.Node, AnimationNode):
         z=np.linspace(0.00, 1.00, num=n, endpoint=False)
         k=amp*(np.sin(((z / n) + (offset/1000)) * freq * angle))
         out=self.maprange_fun((self.snap_number(k, step)), -(amp), amp, 0, amp)
-
         return out.tolist()
-
 
     def snap_number( self, num, step ):
         step_result = np.round( num / step ) * step if step != 0 else num
