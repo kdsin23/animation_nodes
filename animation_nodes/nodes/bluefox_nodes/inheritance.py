@@ -1,12 +1,11 @@
 import bpy
-from math import *
+import numpy as np
 from bpy.props import *
-from mathutils import Matrix
+from ... data_structures import *
+from..bluefox_nodes.c_utils import *
 from ... base_types import AnimationNode
 from ... events import propertyChanged
-from ... events import executionCodeChanged
-from ... data_structures import *
-from ..matrix.c_utils import extractMatrixTranslations
+from..matrix.c_utils import extractMatrixTranslations
 
 modeItems = [
     ("VECTORS", "Vectors", "Vector list in", "", 0),
@@ -21,10 +20,7 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
     mode = EnumProperty(name = "Mode", default = "VECTORS",
         items = modeItems, update = AnimationNode.refresh)
 
-    swap = BoolProperty(name = "Swap", default = False, update = propertyChanged)
-
     def create(self):
-
         if self.mode == "VECTORS":
             self.newInput("Vector List", "Vectors A", "v1")
             self.newInput("Vector List", "Vectors B", "v2")
@@ -39,11 +35,8 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
         self.newInput("Falloff", "Falloff", "falloff")
         self.newInput("Float", "step gap", "step")
     
-
     def draw(self, layout):
         layout.prop(self, "mode")
-        layout.prop(self, "swap")
-
 
     def getExecutionFunctionName(self):
         if self.mode == "VECTORS":
@@ -52,62 +45,37 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
             return "Matrix_lerp"         
 
     def Matrix_lerp(self, m1, m2, falloff, step ):
-
-        if self.swap:
-            x1 = m2
-            x2 = m1
-        else:
-            x1 = m1
-            x2 = m2   
-        
         falloffEvaluator = self.getFalloffEvaluator(falloff)
-        influences = falloffEvaluator.evaluateList(extractMatrixTranslations(x1))
+        if step==0:
+            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)))
+        else:
+            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)), step ))    
 
-        out_matrixlist = Matrix4x4List()
-        values = []
         try:
-            for i, item in enumerate( x1 ):
-                    step_result = self.snap_number( influences[i], step )
-                    values . append(step_result)
-                    out_matrixlist . append( item . lerp( x2[i], step_result ))       
-            return out_matrixlist, DoubleList . fromValues( values )
-            
+            return matrixlerp(m1, m2, influences), influences
         except IndexError:
-            return out_matrixlist, DoubleList . fromValues( values )
+            return m1, influences
 
-        
     def Vector_lerp( self, v1, v2, falloff, step ):
-
-        if self.swap:
-            x1 = v2
-            x2 = v1
-        else:
-            x1 = v1
-            x2 = v2   
-
         falloffEvaluator = self.getFalloffEvaluator(falloff)
-        influences = falloffEvaluator.evaluateList(x1)
+        if step==0:
+            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(v1))
+        else:
+            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(v1), step ))
 
-        out_vectorlist = Vector3DList()
-        values = []
         try:
-            for i, item in enumerate( x1 ):
-                    step_result = self.snap_number( influences[i], step )
-                    values . append( step_result )
-                    out_vectorlist . append( item . lerp( x2[i], step_result ) )       
-            return out_vectorlist, DoubleList . fromValues( values )
-
+            return vectorlerp(v1, v2, influences), influences
         except IndexError:
-            return out_vectorlist, DoubleList . fromValues( values )            
+            return v1, influences           
 
     def getFalloffEvaluator(self, falloff):
         try: return falloff.getEvaluator("LOCATION")
         except: self.raiseErrorMessage("This falloff cannot be evaluated for vectors")
 
-    def snap_number( self, num, step ):
-        step_result = round( num / step ) * step if step != 0 else num
-        return step_result
-                
-        
+    def snap_number( self, nums, step ):
+        num=np.asarray(nums)
+        step_result = np.round( num / step ) * step if step != 0 else num
+        return step_result.tolist() 
+   
 
-             
+                
