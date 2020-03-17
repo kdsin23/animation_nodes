@@ -19,7 +19,6 @@ class Spherical_spiral(bpy.types.Node, AnimationNode):
         self.newInput("Float", "min", "st", value = -1, minValue = -1, maxValue = 1)
         self.newInput("Float", "max", "sp", value = 1, minValue = -1, maxValue = 1)
 
-        
         self.newOutput("Vector List", "Points", "targetLocation")
 
     def execute(self, count, scale, a, p, st, sp):
