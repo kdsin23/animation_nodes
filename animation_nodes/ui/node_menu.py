@@ -73,7 +73,7 @@ class BluefoxMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        insertNode(layout, "an_sinewave", "Sine wave")
+        insertNode(layout, "an_wavefalloff", "Wave falloff")
         insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
         insertNode(layout, "an_fibonacci", "Fibonacci")
         insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
@@ -81,8 +81,7 @@ class BluefoxMenu(bpy.types.Menu):
         insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs #WIP")
         insertNode(layout, "an_Formulafalloff", "Formula falloff #WIP")
         insertNode(layout, "an_Colormix2", "Color mix2 #WIP")
-
-
+        
 class NumberMenu(bpy.types.Menu):
     bl_idname = "AN_MT_number_menu"
     bl_label = "Number Menu"
