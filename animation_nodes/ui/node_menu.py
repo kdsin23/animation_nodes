@@ -80,6 +80,8 @@ class BluefoxMenu(bpy.types.Menu):
         insertNode(layout, "an_Texturefalloff", "Texture falloff #WIP")
         insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs #WIP")
         insertNode(layout, "an_Formulafalloff", "Formula falloff #WIP")
+        insertNode(layout, "an_Colormix2", "Color mix2 #WIP")
+
 
 class NumberMenu(bpy.types.Menu):
     bl_idname = "AN_MT_number_menu"
@@ -611,6 +613,7 @@ class FalloffMenu(bpy.types.Menu):
         insertNode(layout, "an_ObjectControllerFalloffNode", "Object Controller")
         insertNode(layout, "an_SoundFalloffNode", "Sound")
         insertNode(layout, "an_SplineFalloffNode", "Spline")
+        insertNode(layout, "an_MeshFalloffNode", "Mesh")
         layout.separator()
         insertNode(layout, "an_ConstantFalloffNode", "Constant")
         insertNode(layout, "an_CustomFalloffNode", "Custom")
