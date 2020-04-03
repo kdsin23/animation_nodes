@@ -1,3 +1,3 @@
 Animation Nodes 
 ===============
-Fork from Animationnodes with additional nodes
+Fork from AnimationNodes with additional nodes
