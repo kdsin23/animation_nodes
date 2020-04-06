@@ -8,7 +8,7 @@ This branch includes additional nodes, you can find them on Menu->bluefox nodes
 * Wave falloff
 * Formula falloff #WIP
 * Texture falloff #WIP
-* Mix falloff with additional operetions(overlay,subtract) #WIP
+* Mix falloff with additional operations(overlay, subtract) #WIP
 * Spherical spiral
 * Fibonacci
 * Lorenz Attractor
