@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import *
 from math import pi as _pi
-from libc.math cimport sin, cos, sqrt
+from libc.math cimport sin, cos
 from ... utils.limits cimport INT_MAX
 from ... base_types import AnimationNode
 from ... events import executionCodeChanged
@@ -16,8 +16,7 @@ modeItems = [
     ("GRID", "Grid", "", "NONE", 1),
     ("CIRCLE", "Circle", "", "NONE", 2),
     ("MESH", "Mesh", "", "NONE", 3),
-    ("SPIRAL", "Spiral", "", "NONE", 4),
-    ("FIBONACCI", "Fibonacci", "", "NONE", 5)
+    ("SPIRAL", "Spiral", "", "NONE", 4)
 ]
 
 distanceModeItems = [
@@ -89,13 +88,6 @@ class DistributeMatricesNode(bpy.types.Node, AnimationNode):
             self.newInput("Float", "End Size", "endSize", value = 0.5, minValue = 0)
             self.newInput("Float", "Start Angle", "startAngle", value = 0)
             self.newInput("Float", "End Angle", "endAngel", value = 6 * PI)
-        elif self.mode == "FIBONACCI":
-            self.newInput("Integer", "Amount", "amount", value = 100, minValue = 0)
-            self.newInput("Integer", "Center Mask", "centerMask",value = 0, minValue = 0)
-            self.newInput("Float", "Angle", "angle", value = 137.5)
-            self.newInput("Float", "Start Size", "startSize", value = 1.0)
-            self.newInput("Float", "End Size", "endSize", value = 1.0) 
-            self.newInput("Float", "Overall Scale", "scale", value = 1.0)     
 
         self.newOutput("Matrix List", "Matrices", "matrices")
         self.newOutput("Vector List", "Vectors", "vectors")
@@ -137,8 +129,6 @@ class DistributeMatricesNode(bpy.types.Node, AnimationNode):
                 yield "matrices = self.execute_Polygons(mesh)"
         elif self.mode == "SPIRAL":
             yield "matrices = self.execute_Spiral(amount, startRadius, endRadius, startSize, endSize, startAngle, endAngel)"
-        elif self.mode == "FIBONACCI":
-            yield "matrices = self.execute_Fibonacci(amount, centerMask, angle, startSize, endSize, scale)"    
 
         if "vectors" in required:
             yield "vectors = AN.nodes.matrix.c_utils.extractMatrixTranslations(matrices)"
@@ -258,33 +248,6 @@ class DistributeMatricesNode(bpy.types.Node, AnimationNode):
             rotateStep(&iCos, &iSin, stepCos, stepSin)
 
         return matrices
-
-    def execute_Fibonacci(self, Py_ssize_t amount, Py_ssize_t centerMask, float angle, float startSize, float endSize, float scale):
-        centerMask = min(centerMask, amount)
-
-        cdef Py_ssize_t i = centerMask
-        cdef float factor = 1 / <float>((amount - centerMask) - 1) if (amount - centerMask) > 1 else 0
-        cdef float goldenAngle = angle * (PI / 180)
-        cdef float r, theta, size, f
-        cdef Vector3 vector
-        cdef Matrix4x4List matrices = Matrix4x4List(length = amount - centerMask)
-
-        while i < amount:
-            f = <float>(i - centerMask) * factor
-            size = f * (endSize - startSize) + startSize
-            
-            theta = i * goldenAngle
-            r = sqrt(i) / sqrt(amount) * scale
-
-            vector.x = cos(theta) * r
-            vector.y = sin(theta) * r
-            vector.z = 0
-
-            setTranslationMatrix(matrices.data + i - centerMask, &vector)
-            scaleMatrix3x3Part(matrices.data + i - centerMask, size)
-            i += 1
-            
-        return matrices 
 
 cdef int limitAmount(n):
     return max(min(n, INT_MAX), 0)

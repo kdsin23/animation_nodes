@@ -23,4 +23,3 @@ def getTextureColors(texture, Vector3DList locations):
         alphas.data[i] = a
         colors.data[i] = Color(r, g, b, a)
     return colors, reds, greens, blues, alphas
-

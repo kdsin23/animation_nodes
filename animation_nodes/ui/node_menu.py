@@ -47,8 +47,6 @@ def drawMenu(self, context):
     layout.menu("AN_MT_geometry_menu", text = "Geometry", icon = "ORIENTATION_NORMAL")
     layout.menu("AN_MT_kdtree_bvhtree_menu", text = "KD & BVH Tree", icon = "STICKY_UVS_LOC")
     layout.separator()
-    layout.menu("AN_MT_bluefox_menu", text = "Bluefox Nodes", icon = "MESH_MONKEY")
-    layout.separator()
     layout.menu("AN_MT_viewer_menu", text = "Viewer", icon = "INFO")
     layout.menu("AN_MT_subprograms_menu", text = "Subprograms", icon = "FILE_SCRIPT")
     layout.menu("AN_MT_layout_menu", text = "Layout", icon = "IMGDISPLAY")
@@ -66,22 +64,6 @@ def createNodeTree():
     tree = bpy.data.node_groups.new("AN Tree", "an_AnimationNodeTree")
     bpy.context.space_data.node_tree = tree
 
-
-class BluefoxMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_bluefox_menu"
-    bl_label = "Bluefox Menu"
-
-    def draw(self, context):
-        layout = self.layout
-        insertNode(layout, "an_wavefalloff", "Wave falloff")
-        insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
-        insertNode(layout, "an_fibonacci", "Fibonacci")
-        insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
-        insertNode(layout, "an_Texturefalloff", "Texture falloff #WIP")
-        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs #WIP")
-        insertNode(layout, "an_Formulafalloff", "Formula falloff #WIP")
-        insertNode(layout, "an_Colormix2", "Color mix2 #WIP")
-        
 class NumberMenu(bpy.types.Menu):
     bl_idname = "AN_MT_number_menu"
     bl_label = "Number Menu"
@@ -138,6 +120,7 @@ class VectorMenu(bpy.types.Menu):
         insertNode(layout, "an_VectorListMathNode", "List Math")
         insertNode(layout, "an_TransformVectorNode", "Transform")
         insertNode(layout, "an_OffsetVectorNode", "Offset", {"useVectorList" : repr(True)})
+        insertNode(layout, "an_ClosePackingNode", "Close Packing")
 
 class RotationMenu(bpy.types.Menu):
     bl_idname = "AN_MT_rotation_menu"
@@ -483,6 +466,7 @@ class MeshFinalizingMenu(bpy.types.Menu):
         insertNode(layout, "an_BMeshRemoveDoublesNode", "Remove Doubles")
         insertNode(layout, "an_BMeshLimitedDissolveNode", "Limited Dissolve")
         insertNode(layout, "an_BMeshRecalculateFaceNormalsNode", "Recalculate Normals")
+        insertNode(layout, "an_BMeshInvertNormalsNode", "Invert Normals")
         insertNode(layout, "an_ShadeObjectSmoothNode", "Shade Object Smooth")
 
 class SplineMenu(bpy.types.Menu):
@@ -633,13 +617,14 @@ class MaterialMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        insertNode(layout, "an_DataInputNode", "Material", {"assignedType" : repr("Material")})
+        insertNode(layout, "an_DataInputNode", "Material Input", {"assignedType" : repr("Material")})
+        insertNode(layout, "an_ObjectMaterialInputNode", "Object Material Input")
         insertNode(layout, "an_BlendDataByNameNode", "Material By Name", {"dataType" : repr("Material")})
         insertNode(layout, "an_ObjectMaterialOutputNode", "Object Material Output")
-        insertNode(layout, "an_SetPolygonMaterialIndexNode", "Set Polygon Material Index")
-        insertNode(layout, "an_CyclesMaterialOutputNode", "Cycles Material Output")
         insertNode(layout, "an_MaterialOutputNode", "Material Output")
+        insertNode(layout, "an_CyclesMaterialOutputNode", "Cycles Material Output")
         insertNode(layout, "an_GPMaterialOutputNode", "GP Material Output")
+        insertNode(layout, "an_SetPolygonMaterialIndexNode", "Set Polygon Material Index")
         insertNode(layout, "an_MaterialAttributeInputNode", "Material Attribute Input")
         insertNode(layout, "an_MaterialAttributeOutputNode", "Material Attribute Output")
         insertNode(layout, "an_FilterBlendDataListByNameNode", "Filter Material List", {"dataType" : repr("Material")})
