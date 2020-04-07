@@ -14,3 +14,4 @@ This branch includes additional nodes, you can find them on Menu->bluefox nodes
 * Lorenz Attractor
 * Color mix 2 (Vectorized and Blending modes) #WIP
 ## [Download](https://dev.azure.com/h4harisreedharss/AN-bluefox/_build/results?buildId=8&view=artifacts&type=publishedArtifacts)
+After downloading extract zip and install
