@@ -1,6 +1,7 @@
 import bpy
 import numpy as np
 from bpy.props import *
+from mathutils import Matrix
 from ... data_structures import DoubleList, Matrix4x4List, Vector3DList, VirtualMatrix4x4List, VirtualVector3DList 
 from..bluefox_nodes.c_utils import matrix_lerp, vector_lerp
 from ... events import executionCodeChanged, propertyChanged
