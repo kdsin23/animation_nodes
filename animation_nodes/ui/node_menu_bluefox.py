@@ -46,6 +46,7 @@ class BluefoxMenu(bpy.types.Menu):
         insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
         insertNode(layout, "an_fibonacci", "Fibonacci")
         insertNode(layout, "an_lorenz", "Lorenz Attractor")
+        insertNode(layout, "an_splinetracer", "Spline Tracer #WIP")
         insertNode(layout, "an_Colormix2", "Color mix2 #WIP")
 
 class EffectorMenu(bpy.types.Menu):
