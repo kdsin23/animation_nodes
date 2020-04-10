@@ -3,6 +3,7 @@ from bpy.props import *
 from ... events import propertyChanged
 from ... base_types import AnimationNode, VectorizedSocket
 from ... data_structures import Vector3DList, PolySpline, BezierSpline
+from..falloff.mix_falloffs import *
 
 pointTypeItems = [
     ("POINT", "Poly", "Add a normal point to the spline", "NONE", 0),
@@ -28,15 +29,13 @@ class TracerNode(bpy.types.Node, AnimationNode):
         self.newInput(VectorizedSocket("Vector", "usevectorlist",
             ("Point ", "point"), ("Points", "points")))
         if self.pointType == "BEZIER_POINT":
-            self.newInput("Vector", "Left Handle", "leftHandle", hide = True)
-            self.newInput("Vector", "Right Handle", "rightHandle", hide = True)
-            self.newInput("Boolean", "Auto smooth", "autosmooth", value = True, hide = True)    
+            self.newInput("Float", "Smoothness", "smoothness", value = 0.33)    
         self.newInput("Integer", "Reset frame", "resetframe", value = 1, hide = True)
         self.newInput("Integer", "Start frame", "start", value = 1, minValue = 1)
         self.newInput("Integer", "End frame", "end", value = 200, minValue = 1)
         self.newInput("Float", "Radius", "radius", value = 0.1, minValue = 0)
         self.newInput("Float", "Tilt", "tilt")
-        self.newInput("Integer", "Quality", "q", value = 1, minValue = 1, hide = True)
+        self.newInput("Integer", "Reduce Quality", "q", value = 1, minValue = 1, hide = True)
 
         self.newOutput(VectorizedSocket("Spline", "usevectorlist",
             ("Spline", "spline"), ("Splines", "splines")))
@@ -73,7 +72,7 @@ class TracerNode(bpy.types.Node, AnimationNode):
         p[identifier] = p_object
         return splinelist
 
-    def execute_beziersplines(self, points, leftHandle, rightHandle, autosmooth, resetframe, start, end, radius, tilt, q):
+    def execute_beziersplines(self, points, smoothness, resetframe, start, end, radius, tilt, q):
         T = bpy.context.scene.frame_current
         identifier = self.identifier
         if T == resetframe:
@@ -87,19 +86,24 @@ class TracerNode(bpy.types.Node, AnimationNode):
         for i, point in enumerate(points):
             p_object.append(Storevector(i))
             if T >= start and T <= end and T % q == 0 :
-                p_object[i].bezierspline.appendPoint(point, leftHandle, rightHandle, radius, tilt)    
+                p_object[i].bezierspline.appendPoint(point, (0,0,0), (0,0,0), radius, tilt)    
             splinelist.append(p_object[i].bezierspline)
-            if autosmooth :
-                splinelist[i].smoothAllHandles(0.00)
+            splinelist[i].smoothAllHandles(smoothness)
         p[identifier] = p_object
         return splinelist    
 
     def execute_polyspline(self, point, resetframe, start, end, radius, tilt, q):
         points = Vector3DList.fromValues([point])
         splines = self.execute_polysplines(points, resetframe, start, end, radius, tilt, q)
-        return splines[0]
+        if len(splines) == 0: 
+            return PolySpline()
+        else:    
+            return splines[0]
 
-    def execute_bezierspline(self, point, leftHandle, rightHandle, autosmooth, resetframe, start, end, radius, tilt, q):
+    def execute_bezierspline(self, point, smoothness, resetframe, start, end, radius, tilt, q):
         points = Vector3DList.fromValues([point])
-        splines = self.execute_beziersplines(points, leftHandle, rightHandle, autosmooth, resetframe, start, end, radius, tilt, q)
-        return splines[0]    
+        splines = self.execute_beziersplines(points, smoothness, resetframe, start, end, radius, tilt, q)
+        if len(splines) == 0: 
+            return BezierSpline()
+        else:    
+            return splines[0]    
