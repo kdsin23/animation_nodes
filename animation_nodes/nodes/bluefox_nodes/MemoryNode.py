@@ -26,7 +26,9 @@ class MemoryNode(bpy.types.Node, AnimationNode):
             self.newInput("Integer", "Reduce Quality", "reducequality", value = 1, minValue = 1, hide = True)
         if self.mode == "CUSTOM":
             self.newInput("Boolean", "Append Condition", "appendcondition", value = 1)
-            self.newInput("Boolean", "Reset Condition", "resetcondition", value = 1)    
+            self.newInput("Boolean", "Reset Condition", "resetcondition", value = 1)
+        self.newInput("Boolean", "Use Custom Identifier", "useCustomIdentifier", value = 0, hide = True)
+        self.newInput("Text", "Custom Identifier", "customIdentifier", value = "abcd", hide = True)         
 
         self.newOutput("Generic List", "Values", "values", dataIsModified = True)
 
@@ -39,9 +41,11 @@ class MemoryNode(bpy.types.Node, AnimationNode):
         elif self.mode == "CUSTOM":
             return "execute_custom"        
 
-    def execute_useframe(self, value, resetframe, start, end, reducequality):
+    def execute_useframe(self, value, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier):
         T = bpy.context.scene.frame_current
         identifier = self.identifier + "useframe"
+        if useCustomIdentifier:
+            identifier = customIdentifier + "useframe"
         defaultlist = [value]
         if T == resetframe:
             StoreValues[identifier] = defaultlist
@@ -53,9 +57,10 @@ class MemoryNode(bpy.types.Node, AnimationNode):
         StoreValues[identifier] = storedElement
         return storedElement
 
-    def execute_custom(self, value, appendcondition, resetcondition):
+    def execute_custom(self, value, appendcondition, resetcondition, useCustomIdentifier, customIdentifier):
         identifier = self.identifier + "custom"
-        print(identifier)
+        if useCustomIdentifier:
+            identifier = customIdentifier + "custom"
         defaultlist = [value]
         if resetcondition:
             StoreValues[identifier] = []

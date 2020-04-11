@@ -33,6 +33,8 @@ class Memoryfalloff(bpy.types.Node, AnimationNode):
         self.newInput("Integer", "Start Frame", "start", value = 1, minValue = 1)
         self.newInput("Integer", "End Frame", "end", value = 200, minValue = 1)
         self.newInput("Integer", "Reduce Quality", "reducequality", value = 1, minValue = 1, hide = True)
+        self.newInput("Boolean", "Use Custom Identifier", "useCustomIdentifier", value = 0, hide = True)
+        self.newInput("Text", "Custom Identifier", "customIdentifier", value = "abcd", hide = True)
 
         if self.mode == "FALLOFF":
             self.newOutput("Falloff", "Falloff", "falloffOut")
@@ -47,13 +49,15 @@ class Memoryfalloff(bpy.types.Node, AnimationNode):
 
     def getExecutionCode(self, required):
         if self.mode == "FALLOFFS": 
-            yield "falloffList = self.execute_memoryfalloffs(falloff, resetframe, start, end, reducequality)"
+            yield "falloffList = self.execute_memoryfalloffs(falloff, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier)"
         if self.mode == "FALLOFF":
-            yield "falloffOut = self.execute_memoryfalloff(falloff, resetframe, start, end, reducequality)"         
+            yield "falloffOut = self.execute_memoryfalloff(falloff, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier)"         
 
-    def execute_memoryfalloffs(self, falloff, resetframe, start, end, reducequality):
+    def execute_memoryfalloffs(self, falloff, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier):
         T = bpy.context.scene.frame_current
         identifier = self.identifier
+        if useCustomIdentifier:
+            identifier = customIdentifier 
         defaultfalloff = [falloff]
         if T == resetframe:
             storefalloff[identifier] = []
@@ -66,9 +70,9 @@ class Memoryfalloff(bpy.types.Node, AnimationNode):
         storefalloff[identifier] = storedElement
         return falloffs
 
-    def execute_memoryfalloff(self, falloff, resetframe, start, end, reducequality):
+    def execute_memoryfalloff(self, falloff, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier):
         T = bpy.context.scene.frame_current
-        falloffs = self.execute_memoryfalloffs(falloff, resetframe, start, end, reducequality)
+        falloffs = self.execute_memoryfalloffs(falloff, resetframe, start, end, reducequality, useCustomIdentifier, customIdentifier)
         if T != resetframe and len(falloffs) == 0:
             return falloff
         else:    
