@@ -61,15 +61,13 @@ class TracerNode(bpy.types.Node, AnimationNode):
             identifier = customIdentifier + "poly"  
         if T == resetframe:
             p[identifier] = []
-
         p_object = p.get(identifier, [])
         splinelist = []
         if T != resetframe and len(p_object) == 0: 
             return splinelist
-
         for i, point in enumerate(points):
             p_object.append(StoreSpline(i))
-            if T >= start and T <= end :
+            if T >= start and T <= end and T % q == 0 :
                 p_object[i].polyspline.appendPoint(point, radius, tilt)
             splinelist.append(p_object[i].polyspline)
         p[identifier] = p_object
