@@ -1,6 +1,6 @@
 # AN with BLUEFOX Nodes
 
-Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_nodes). This branch also includes nodes from AN+EN([3DSINGHVFX](https://github.com/3DSinghVFX/animation_nodes/tree/extranodes))
+Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_nodes). This branch also includes nodes from AN+EN([3DSinghVFX](https://github.com/3DSinghVFX/animation_nodes/tree/extranodes))
 
 ### Additional nodes :
 * Spline Tracer #WIP
