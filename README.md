@@ -1,8 +1,7 @@
 # AN with BLUEFOX Nodes
 
-Fork from AnimationNodes.
-This branch also includes nodes from AN+EN(3DSINGHVFX)
-Find Additional nodes in Menu->bluefox nodes
+Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_nodes). This branch also includes nodes from AN+EN([3DSINGHVFX](https://github.com/3DSinghVFX/animation_nodes/tree/extranodes))
+
 ### Additional nodes :
 * Spline Tracer #WIP
 * Memory Falloff #WIP
