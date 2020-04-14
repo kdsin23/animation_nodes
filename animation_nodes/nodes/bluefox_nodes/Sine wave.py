@@ -17,7 +17,9 @@ class Sinewave(bpy.types.Node, AnimationNode):
     bl_idname = "an_sinewave"
     bl_label = "Sine wave falloff"
 
-    mode = EnumProperty(name = "Mode", default = "ANIMATE",
+    __annotations__ = {}
+
+    __annotations__["mode"] = EnumProperty(name = "Mode", default = "ANIMATE",
         items = modeItems, update = AnimationNode.refresh)
 
     def create(self):
@@ -46,7 +48,6 @@ class Sinewave(bpy.types.Node, AnimationNode):
             return "execute_Manual"    
 
     def execute_Animate(self, n, speed, freq, amp, angle, step, fallback):
-
         T=bpy.context.scene.frame_current
         offset = T*speed
         out = self.sinewave_fun(n, offset, freq, amp, angle, step, fallback)
@@ -70,8 +71,9 @@ class Sinewave(bpy.types.Node, AnimationNode):
         leftSpan = leftMax - leftMin
         rightSpan = rightMax - rightMin
         valueScaled = (value - leftMin) / (leftSpan)
-        return rightMin + (valueScaled * rightSpan)       
+        return rightMin + (valueScaled * rightSpan) 
 
+               
 
         
         
