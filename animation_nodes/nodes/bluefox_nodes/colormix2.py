@@ -4,7 +4,7 @@ from bpy.props import *
 from ... events import executionCodeChanged
 from ... base_types import AnimationNode, VectorizedSocket
 
-modeItems = [
+colormodeItems = [
     ("MIX", "Mix", "Mix", "", 0),
     ("ADD", "Add", "Add", "", 1),
     ("LIGHTEN", "Lighten", "Lighten", "", 2),
@@ -19,12 +19,14 @@ class Colormix2(bpy.types.Node, AnimationNode):
     bl_idname = "an_Colormix2"
     bl_label = "Colormix2"
 
+    __annotations__ = {}
+    
     usecolor1List: VectorizedSocket.newProperty()
     usecolor2List: VectorizedSocket.newProperty()
     usefactorList: VectorizedSocket.newProperty()
 
-    mode = EnumProperty(name = "Type", default = "MIX",
-        items = modeItems, update = AnimationNode.refresh)
+    __annotations__["mode"] = EnumProperty(name = "Type", default = "MIX",
+        items = colormodeItems, update = AnimationNode.refresh)
 
     def create(self):
         self.newInput(VectorizedSocket("Color", "usecolor1List",
