@@ -11,7 +11,7 @@ class RevolveSplineNode(bpy.types.Node, AnimationNode):
     bl_width_default = 160
 
     def create(self):
-        self.newInput("Integer", "Iteration", "n", min = 0)
+        self.newInput("Integer", "Iteration", "n", minValue = 0)
         self.newInput("Float", "dt", "dt", value = 0.01, hide = True)
         self.newInput("Float", "sigma", "s", value = 10)
         self.newInput("Float", "rho", "r", value = 28)
