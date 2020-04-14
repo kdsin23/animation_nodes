@@ -8,7 +8,7 @@ from ... events import executionCodeChanged, propertyChanged
 from ... base_types import AnimationNode, VectorizedSocket
 from..matrix.c_utils import extractMatrixTranslations
 
-modeItems = [
+inheritancemodeItems = [
     ("VECTORS", "Vectors", "Vector list in", "", 0),
     ("MATRICES", "Matrices", "Matrix list in", "", 1)
 ]
@@ -18,14 +18,15 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
     bl_label = "Inheritance effector"
     errorHandlingType = "EXCEPTION"
 
+    __annotations__ = {}
+
     usev1List: VectorizedSocket.newProperty()
     usev2List: VectorizedSocket.newProperty()
     usem1List: VectorizedSocket.newProperty()
     usem2List: VectorizedSocket.newProperty()
 
-
-    mode = EnumProperty(name = "Mode", default = "VECTORS",
-        items = modeItems, update = AnimationNode.refresh)
+    __annotations__["mode"] = EnumProperty(name = "Mode", default = "VECTORS",
+        items = inheritancemodeItems, update = AnimationNode.refresh)
 
     def create(self):
         if self.mode == "VECTORS":
