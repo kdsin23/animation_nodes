@@ -39,20 +39,21 @@ class BluefoxMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.menu("AN_Effectors_menu", text = "Effectors")
         layout.separator()
-        layout.menu("AN_newfalloffs_menu", text = "New falloffs")
+        layout.menu("AN_MT_Effectors_menu", text = "Effectors")
+        layout.separator()
+        layout.menu("AN_MT_newfalloffs_menu", text = "New Falloffs")
         layout.separator()
         insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
         insertNode(layout, "an_fibonacci", "Fibonacci")
         insertNode(layout, "an_lorenz", "Lorenz Attractor")
-        insertNode(layout, "an_splinetracer", "Spline Tracer #WIP")
-        insertNode(layout, "an_MemoryNode", "Memory Node #WIP")
-        insertNode(layout, "an_Memoryfalloff", "Memory Falloff #WIP")
-        insertNode(layout, "an_Colormix2", "Color mix2 #WIP")
+        layout.separator()
+        layout.menu("AN_MT_AlphaNodes_menu", text = "AlphaNodes", icon = "ERROR")
+        layout.separator()
+        
 
 class EffectorMenu(bpy.types.Menu):
-    bl_idname = "AN_Effectors_menu"
+    bl_idname = "AN_MT_Effectors_menu"
     bl_label = "Effectors Menu"
 
     def draw(self, context):
@@ -60,15 +61,27 @@ class EffectorMenu(bpy.types.Menu):
         insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
 
 class NewfalloffsMenu(bpy.types.Menu):
-    bl_idname = "AN_newfalloffs_menu"
+    bl_idname = "AN_MT_newfalloffs_menu"
     bl_label = "New falloffs Menu"
 
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_wavefalloff", "Wave falloff")
-        insertNode(layout, "an_Texturefalloff", "Texture falloff #WIP")
-        insertNode(layout, "an_Formulafalloff", "Formula falloff #WIP")
-        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs #WIP")
+
+class AlphaNodesMenu(bpy.types.Menu):
+    bl_idname = "AN_MT_AlphaNodes_menu"
+    bl_label = "AlphaNodes Menu"
+
+    def draw(self, context):
+        layout = self.layout
+        insertNode(layout, "an_splinetracer", "Spline Tracer")
+        insertNode(layout, "an_MemoryNode", "Memory Node")
+        insertNode(layout, "an_Memoryfalloff", "Memory Falloff")
+        insertNode(layout, "an_Colormix2", "Color mix-2")
+        insertNode(layout, "an_Texturefalloff", "Texture falloff")
+        insertNode(layout, "an_Formulafalloff", "Formula falloff")
+        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs-2")
+
 
 def insertNode(layout, type, text, settings = {}, icon = "NONE"):
     operator = layout.operator("node.add_node", text = text, icon = icon)
