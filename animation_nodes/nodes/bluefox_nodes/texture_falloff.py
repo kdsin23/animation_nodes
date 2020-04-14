@@ -19,12 +19,14 @@ class Texturefalloff(bpy.types.Node, AnimationNode):
     bl_idname = "an_Texturefalloff"
     bl_label = "Texture falloff"
 
-    mode = EnumProperty(name = "Use", default = "GREY",
+    __annotations__ = {}
+
+    __annotations__["mode"] = EnumProperty(name = "Use", default = "GREY",
         items = modeItems, update = AnimationNode.refresh)
 
     def create(self):
         self.newInput("Texture", "Texture", "texture", defaultDrawType = "PROPERTY_ONLY")
-        self.newInput("Vector List", "vecin", "locations")
+        self.newInput("Vector List", "Locations", "locations")
         self.newInput("Float", "strength", "strength", value=1)
         self.newInput("Float", "Fallback", "fallback", hide = True)
 
