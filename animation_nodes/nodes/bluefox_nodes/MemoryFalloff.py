@@ -21,10 +21,12 @@ class Memoryfalloff(bpy.types.Node, AnimationNode):
     bl_label = "Memory Falloff"
     bl_width_default = 150
 
-    mode = EnumProperty(name = "Mode", default = "FALLOFF",
+    __annotations__ = {}
+
+    __annotations__["mode"] = EnumProperty(name = "Mode", default = "FALLOFF",
         items = modeItems, update = AnimationNode.refresh)
 
-    mixMode = EnumProperty(name = "Mix", default = "MAX",
+    __annotations__["mixMode"] = EnumProperty(name = "Mix", default = "MAX",
         items = mixModeItems, update = AnimationNode.refresh)    
 
     def create(self):
