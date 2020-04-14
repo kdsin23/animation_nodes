@@ -14,7 +14,9 @@ class MemoryNode(bpy.types.Node, AnimationNode):
     bl_label = "Memory Node"
     bl_width_default = 150
 
-    mode = EnumProperty(name = "Mode", default = "CUSTOM",
+    __annotations__ = {}
+
+    __annotations__["mode"] = EnumProperty(name = "Mode", default = "CUSTOM",
         items = modeItems, update = AnimationNode.refresh)
     
     def create(self):
