@@ -14,7 +14,9 @@ class fibonaccii(bpy.types.Node, AnimationNode):
     bl_idname = "an_fibonacci"
     bl_label = "fibonacci"
 
-    mode = EnumProperty(name = "Mode", default = "POINTS",
+    __annotations__ = {}
+
+    __annotations__["mode"] = EnumProperty(name = "Mode", default = "POINTS",
         items = modeItems, update = AnimationNode.refresh)
     
     def create(self):
