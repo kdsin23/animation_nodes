@@ -5,7 +5,7 @@ from ... base_types import AnimationNode
 from ... data_structures import Vector3DList
 from ... data_structures import VirtualVector3DList, VirtualDoubleList
 
-class RevolveSplineNode(bpy.types.Node, AnimationNode):
+class LorenzAttractorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_lorenz"
     bl_label = "lorenz attractor"
     bl_width_default = 160
