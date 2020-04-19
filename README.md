@@ -7,6 +7,7 @@ Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_nodes). Thi
 * Memory Falloff 
 * Memory Node 
 * Inheritance effector
+* Blender Noise nodes(Turbulence, Fractal, Variable lacunarity, Voronoi)
 * Wave falloff
 * Formula falloff 
 * Texture falloff 
