@@ -42,16 +42,15 @@ class BluefoxMenu(bpy.types.Menu):
         layout.separator()
         layout.menu("AN_MT_Effectors_menu", text = "Effectors")
         layout.separator()
-        layout.menu("AN_MT_newfalloffs_menu", text = "New Falloffs")
+        layout.menu("AN_MT_extrafalloffs_menu", text = "Extra Falloffs")
         layout.separator()
-        insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
-        insertNode(layout, "an_fibonacci", "Fibonacci")
-        insertNode(layout, "an_lorenz", "Lorenz Attractor")
+        layout.menu("AN_MT_BlenderNoise_menu", text = "Blender Noise")
+        layout.separator()
+        layout.menu("AN_MT_Miscellaneous_menu", text = "Miscellaneous")
         layout.separator()
         layout.menu("AN_MT_AlphaNodes_menu", text = "AlphaNodes", icon = "ERROR")
         layout.separator()
         
-
 class EffectorMenu(bpy.types.Menu):
     bl_idname = "AN_MT_Effectors_menu"
     bl_label = "Effectors Menu"
@@ -60,13 +59,34 @@ class EffectorMenu(bpy.types.Menu):
         layout = self.layout
         insertNode(layout, "an_Inheritanceffector", "Inheritance effector")
 
-class NewfalloffsMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_newfalloffs_menu"
-    bl_label = "New falloffs Menu"
+class ExtrafalloffsMenu(bpy.types.Menu):
+    bl_idname = "AN_MT_extrafalloffs_menu"
+    bl_label = "Extra falloffs Menu"
 
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_wavefalloff", "Wave falloff")
+
+class BlenderNoiseMenu(bpy.types.Menu):
+    bl_idname = "AN_MT_BlenderNoise_menu"
+    bl_label = "BlenderNoise Menu"
+
+    def draw(self, context):
+        layout = self.layout
+        insertNode(layout, "an_BLVectorTurbulance", "BL Vector Turbulence")
+        insertNode(layout, "an_BLVectorFractal", "BL Vector Fractal")
+        insertNode(layout, "an_BLVariableLacunarity", "BL Variable Lacunarity")
+        insertNode(layout, "an_BLVoronoi", "BL Voronoi")
+
+class MiscellaneousMenu(bpy.types.Menu):
+    bl_idname = "AN_MT_Miscellaneous_menu"
+    bl_label = "Miscellaneous Menu"
+
+    def draw(self, context):
+        layout = self.layout
+        insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
+        insertNode(layout, "an_fibonacci", "Fibonacci")
+        insertNode(layout, "an_lorenz", "Lorenz Attractor")                
 
 class AlphaNodesMenu(bpy.types.Menu):
     bl_idname = "AN_MT_AlphaNodes_menu"
