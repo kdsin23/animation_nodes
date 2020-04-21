@@ -1,8 +1,9 @@
 import bpy
-from ... data_structures import *
+import numpy as np
 from bpy.props import *
-from ... events import executionCodeChanged
+from ... events import executionCodeChanged, propertyChanged
 from ... base_types import AnimationNode, VectorizedSocket
+from ... data_structures import Color, ColorList, VirtualColorList, VirtualDoubleList
 
 colormodeItems = [
     ("MIX", "Mix", "Mix", "", 0),
@@ -17,177 +18,130 @@ colormodeItems = [
 
 class Colormix2(bpy.types.Node, AnimationNode):
     bl_idname = "an_Colormix2"
-    bl_label = "Colormix2"
+    bl_label = "Color Mix 2"
+    errorHandlingType = "EXCEPTION"
 
     __annotations__ = {}
     
-    usecolor1List: VectorizedSocket.newProperty()
-    usecolor2List: VectorizedSocket.newProperty()
-    usefactorList: VectorizedSocket.newProperty()
-
     __annotations__["mode"] = EnumProperty(name = "Type", default = "MIX",
         items = colormodeItems, update = AnimationNode.refresh)
 
+    clamp = BoolProperty(name = "Clamp", default = True, update = propertyChanged)    
+
+    usecolor1List: VectorizedSocket.newProperty()
+    usecolor2List: VectorizedSocket.newProperty()
+    usefactorList: VectorizedSocket.newProperty()    
+
     def create(self):
         self.newInput(VectorizedSocket("Color", "usecolor1List",
-            ("Color1", "color1"), ("Colors1", "colors1")))
+            ("Color A", "colorA"), ("Colors A", "colorsA")))
         self.newInput(VectorizedSocket("Color", "usecolor2List",
-            ("Color2", "color2"), ("Colors2", "colors2")))
+            ("Color B", "colorB"), ("Colors B", "colorsB")))
         self.newInput(VectorizedSocket("Float", "usefactorList",
-            ("F", "f"), ("Fs", "fs")))
+            ("Factor", "factor"), ("Factors", "factors")))        
+        self.newInput("Float", "Alpha", "alpha", value = 1.0, hide = True)     
 
         self.newOutput(VectorizedSocket("Color", ["usecolor1List", "usecolor2List", "usefactorList"],
-            ("Color", "color"), ("Colors", "colors")))
+            ("Color", "color"), ("Colors", "colors")))   
 
     def draw(self, layout):
+        layout.prop(self, "clamp")
         layout.prop(self, "mode")
 
     def getExecutionFunctionName(self):
-        if self.usecolor1List ==0 and self.usecolor2List ==0 and self.usefactorList ==0 :
-            return "executeSingle" 
-        elif self.usecolor1List and self.usecolor2List and self.usefactorList==0 :
-            return "execute_multicolorlist_singlefactor"
-        elif self.usecolor1List ==0 and self.usecolor2List ==0 and self.usefactorList :
-            return "execute_singlecolor_multifactor" 
-        elif self.usecolor1List and self.usecolor2List ==0 and self.usefactorList==0 :
-            return "execute_singlecolorlist1_singlefactor"
+        if self.usecolor1List and self.usecolor2List and self.usefactorList :
+            return "execute_allList"
+        elif self.usecolor1List and self.usecolor2List == 0 and self.usefactorList == 0 :
+            return "execute_onlyColAList"
+        elif self.usecolor1List == 0 and self.usecolor2List and self.usefactorList == 0 :
+            return "execute_onlyColBList"
+        elif self.usecolor1List == 0 and self.usecolor2List ==0 and self.usefactorList :
+            return "execute_onlyFactorList"
         elif self.usecolor1List and self.usecolor2List ==0 and self.usefactorList :
-            return "execute_singlecolorlist1_multifactor"  
-        elif self.usecolor1List==0 and self.usecolor2List and self.usefactorList==0 :
-            return "execute_singlecolorlist2_singlefactor"
-        elif self.usecolor1List==0 and self.usecolor2List and self.usefactorList :
-            return "execute_singlecolorlist2_multifactor"              
+            return "execute_ColA_Factor_isList"
+        elif self.usecolor1List == 0 and self.usecolor2List and self.usefactorList :
+            return "execute_ColB_Factor_isList"
+        elif self.usecolor1List and self.usecolor2List and self.usefactorList == 0 :
+            return "execute_ColA_ColB_isList"
+        else:
+            return "execute_allSingle"                        
 
-
-    def execute_multicolorlist_singlefactor(self, colors1, colors2, f):
-        if len(colors1)==0 or len(colors2)==0 :
+    def execute_allList(self, colorsA, colorsB, factors, alpha):
+        if len(colorsA) == 0 or len(colorsB) == 0 or len(factors) == 0:
+            self.raiseErrorMessage("Reconnect Output Socket")
             return ColorList()
-        else: 
-            count = max(len(colors1),len(colors2))
-            self.fillList(colors1, count)
-            self.fillList(colors2, count)
-            results = colors1
-            for i in range(count):
-                res = colors1[i]
-                results[i]= self.Blend_col(res, colors1[i], colors2[i],f)
-            return results
 
-    def execute_singlecolor_multifactor(self, color1, color2, fs):
-        count = len(fs)
-        results = ColorList.fromValues([color1])
-        self.fillList(results, count)
-        for i in range(count):
-            res = color1
-            results[i]= self.Blend_col(res, color1, color2,fs[i])
-        return results  
+        if len(colorsA) == len(colorsB) == len(factors):
+            colA = np.array(colorsA)
+            colB = np.array(colorsB)
+            shaped_factor = np.repeat(factors, 4).reshape(-1, 4)
+        else:
+            maxLength = max(max(len(colorsA), len(colorsB)), len(factors))
+            colA = np.array(VirtualColorList.create(colorsA, colorsA[-1]).materialize(maxLength))
+            colB = np.array(VirtualColorList.create(colorsB, colorsB[-1]).materialize(maxLength))
+            factor = np.array(VirtualDoubleList.create(factors, factors[-1]).materialize(maxLength))
+            shaped_factor = np.repeat(factor, 4).reshape(-1, 4)   
+        mode = self.mode
+        if self.clamp:
+            shaped_factor = np.clip(shaped_factor, 0.00, 1.00)
 
-    def execute_singlecolorlist1_singlefactor(self, colors1, color2, f):
-            count = len(colors1)
-            results = colors1
-            for i in range(count):
-                res = colors1[i]
-                results[i]= self.Blend_col(res, colors1[i], color2,f)
-            return results 
+        if mode == "ADD":
+            result = colA + colB
+        elif mode == "SUBTRACT":
+            result = colA - colB
+        elif mode == "MULTIPLY":
+            result = colA * colB
+        elif mode == "SCREEN":
+            result = 1 - (1 - colA) * (1 - colB)   
+        elif mode == "LIGHTEN":
+            result = np.maximum(colA, colB)
+        elif mode == "DARKEN":
+            result = np.minimum(colA, colB)    
+        elif mode == "OVERLAY":                 #Overlay function needs work
+            if np.any([colA < 0.5]):
+                result = 2 * colA * colB
+            else:
+                result = 1 - 2 * (1 - colA) * (1 - colB)
+        elif mode == "MIX":
+            result = colB        
 
-    def execute_singlecolorlist1_multifactor(self, colors1, color2, fs):
-            count = max(len(colors1),len(fs))
-            self.fillList(colors1, count)
-            self.fillList(fs, count)
-            results = colors1
-            for i in range(count):
-                res = colors1[i]
-                results[i]= self.Blend_col(res, colors1[i], color2,fs[i])
-            return results 
-
-    def execute_singlecolorlist2_singlefactor(self, color1, colors2, f):
-            count = len(colors2)
-            results = colors2
-            for i in range(count):
-                res = color1
-                results[i]= self.Blend_col(res, color1, colors2[i],f)
-            return results 
-
-    def execute_singlecolorlist2_multifactor(self, color1, colors2, fs):
-            count = max(len(colors2),len(fs))
-            self.fillList(colors2, count)
-            self.fillList(fs, count)
-            results = colors2
-            for i in range(count):
-                res = color1
-                results[i]= self.Blend_col(res, color1, colors2[i],fs[i])
-            return results                                           
-
-    def executeSingle(self, color1, color2,f):
-        res = color1
-        return self.Blend_col(res, color1, color2, f)
-
-    def Mix_col(self, color1, color2, f):
-        res=color1
-        res.r=color1[0]*(1-f) + color2[0]*f
-        res.g=color1[1]*(1-f) + color2[1]*f
-        res.b=color1[2]*(1-f) + color2[2]*f
-        res.a=1
-        return res
-
-    def Blend_col(self, res, color1, color2,f):
-            if self.mode == "ADD":
-                res.r=color1[0] + color2[0]
-                res.g=color1[1] + color2[1]
-                res.b=color1[2] + color2[2]
-                res.a=1
-            elif self.mode == "SUBTRACT":
-                res.r=color1[0] - color2[0]
-                res.g=color1[1] - color2[1]
-                res.b=color1[2] - color2[2]
-                res.a=1
-            elif self.mode == "MULTIPLY":
-                res.r=color1[0] * color2[0]
-                res.g=color1[1] * color2[1]
-                res.b=color1[2] * color2[2]
-                res.a=1 
-            elif self.mode == "MIX":
-                res = self.Mix_col(color1,color2,f)
-            elif self.mode == "OVERLAY":    
-                if color1[0]<0.5:
-                    res.r=2*color1[0]*color2[0]
-                else:
-                    res.r=1-2*(1-color1[0])*(1-color2[0])
-                if color1[1]<0.5:
-                    res.g=2*color1[1]*color2[1]
-                else:
-                    res.g=1-2*(1-color1[1])*(1-color2[1])
-                if color1[2]<0.5:
-                    res.b=2*color1[2]*color2[2]
-                else:
-                    res.b=1-2*(1-color1[2])*(1-color2[2])                
-                res.a=1
-            elif self.mode == "LIGHTEN":    
-                res.r=max(color1[0],color2[0])
-                res.g=max(color1[1],color2[1])
-                res.b=max(color1[2],color2[2])
-                res.a=1
-            elif self.mode == "DARKEN":
-                res.r=min(color1[0],color2[0])
-                res.g=min(color1[1],color2[1])
-                res.b=min(color1[2],color2[2])
-                res.a=1
-            elif self.mode == "SCREEN":
-                res.r=1-(1-color1[0]) * (1-color2[0])
-                res.g=1-(1-color1[1]) * (1-color2[1])
-                res.b=1-(1-color1[2]) * (1-color2[2])
-                res.a=1
-            return self.Mix_col(color1, res, f) 
-
-    def fillList(self,l, count):
-        n = len(l)
-        if n == count:
-            return
-        d = count - n
-        if d > 0:
-            l.extend([l[-1] for a in range(d)])
-        return         
-        
-
+        out = self.color_mix(colA, result, shaped_factor)
+        out[:,-1] = alpha
+        if self.clamp:
+            out = np.clip(out, 0.00, 1.00)       
+        return out.tolist()           
          
-      
+    def color_mix(self, colorsA, colorsB, factor):
+        return (1 - factor) * colorsA + factor * colorsB
 
+    def execute_onlyColAList(self, colorsA, colorB, factor, alpha):
+        colorsB = ColorList.fromValues([colorB])
+        return self.execute_allList(colorsA, colorsB, [factor], alpha)
+
+    def execute_onlyColBList(self, colorA, colorsB, factor, alpha):
+        colorsA = ColorList.fromValues([colorA])
+        return self.execute_allList(colorsA, colorsB, [factor], alpha)
+
+    def execute_onlyFactorList(self, colorA, colorB, factors, alpha):
+        colorsA = ColorList.fromValues([colorA])
+        colorsB = ColorList.fromValues([colorB])
+        return self.execute_allList(colorsA, colorsB, factors, alpha)
+
+    def execute_ColA_Factor_isList(self, colorsA, colorB, factors, alpha):
+        colorsB = ColorList.fromValues([colorB])
+        return self.execute_allList(colorsA, colorsB, factors, alpha) 
+
+    def execute_ColB_Factor_isList(self, colorA, colorsB, factors, alpha):
+        colorsA = ColorList.fromValues([colorA])
+        return self.execute_allList(colorsA, colorsB, factors, alpha)
+
+    def execute_ColA_ColB_isList(self, colorsA, colorsB, factor, alpha):
+        return self.execute_allList(colorsA, colorsB, [factor], alpha)
+
+    def execute_allSingle(self, colorA, colorB, factor, alpha):
+        colorsA = ColorList.fromValues([colorA])
+        colorsB = ColorList.fromValues([colorB])
+        result = self.execute_allList(colorsA, colorsB, [factor], alpha)
+        return result[0] 
+
+   

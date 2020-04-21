@@ -97,7 +97,7 @@ class AlphaNodesMenu(bpy.types.Menu):
         insertNode(layout, "an_splinetracer", "Spline Tracer")
         insertNode(layout, "an_MemoryNode", "Memory Node")
         insertNode(layout, "an_Memoryfalloff", "Memory Falloff")
-        insertNode(layout, "an_Colormix2", "Color mix-2")
+        insertNode(layout, "an_Colormix2", "Color Mix 2")
         insertNode(layout, "an_Texturefalloff", "Texture falloff")
         insertNode(layout, "an_Formulafalloff", "Formula falloff")
         insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs-2")
