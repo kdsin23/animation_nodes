@@ -74,4 +74,5 @@ class fibonaccii(bpy.types.Node, AnimationNode):
             if actualMax == 0.0:
                 return result
             result = [x*maxValue/actualMax for x in result]
-        return DoubleList.fromValues(result)    
+        return DoubleList.fromValues(result)
+            

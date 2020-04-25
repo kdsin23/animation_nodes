@@ -186,7 +186,4 @@ class Inheritanceffector(bpy.types.Node, AnimationNode):
         num=np.asarray(nums)
         step_result = np.round( num / step ) * step if step != 0 else num
         return step_result.tolist() 
-
-    
-
-                
+      

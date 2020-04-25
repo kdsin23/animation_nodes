@@ -112,7 +112,3 @@ class Wavefalloff(bpy.types.Node, AnimationNode):
         rightSpan = rightMax - rightMin
         valueScaled = (value - leftMin) / (leftSpan)
         return rightMin + (valueScaled * rightSpan)       
-
-
-        
-        

@@ -123,4 +123,5 @@ class SplineTracerNode(bpy.types.Node, AnimationNode):
         if len(splines) == 0: 
             return BezierSpline()
         else:    
-            return splines[0]    
+            return splines[0] 
+               

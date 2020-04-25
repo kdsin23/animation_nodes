@@ -32,5 +32,3 @@ class Spherical_spiral(bpy.types.Node, AnimationNode):
         except ValueError:
             self.raiseErrorMessage("Error")
             return   
-
-

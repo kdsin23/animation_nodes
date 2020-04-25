@@ -103,9 +103,3 @@ def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influen
         out_vectorlist.data[i].y = vectorsA.data[i].y * (1-influences.data[i]) + vectorsB.data[i].y * influences.data[i]
         out_vectorlist.data[i].z = vectorsA.data[i].z * (1-influences.data[i]) + vectorsB.data[i].z * influences.data[i]
     return out_vectorlist
-
-
-
-
-
-

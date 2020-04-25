@@ -49,11 +49,3 @@ class Texturefalloff(bpy.types.Node, AnimationNode):
                 return CustomFalloff(FloatList.fromValues(b), fallback),c
             elif self.mode == "ALPHA":
                 return CustomFalloff(FloatList.fromValues(a), fallback),c
-
-        
-
-
-
-
-
-

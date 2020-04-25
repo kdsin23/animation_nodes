@@ -73,4 +73,3 @@ class MemoryNode(bpy.types.Node, AnimationNode):
             storedElement.append(value)            
         StoreValues[identifier] = storedElement
         return storedElement                 
-

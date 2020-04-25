@@ -143,5 +143,3 @@ class Colormix2(bpy.types.Node, AnimationNode):
         colorsB = ColorList.fromValues([colorB])
         result = self.execute_allList(colorsA, colorsB, [factor], alpha)
         return result[0] 
-
-   
