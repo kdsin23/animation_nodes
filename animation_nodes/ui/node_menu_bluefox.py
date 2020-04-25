@@ -44,8 +44,6 @@ class BluefoxMenu(bpy.types.Menu):
         layout.separator()
         layout.menu("AN_MT_extrafalloffs_menu", text = "Extra Falloffs")
         layout.separator()
-        layout.menu("AN_MT_BlenderNoise_menu", text = "Blender Noise")
-        layout.separator()
         layout.menu("AN_MT_Miscellaneous_menu", text = "Miscellaneous")
         layout.separator()
         layout.menu("AN_MT_AlphaNodes_menu", text = "AlphaNodes", icon = "ERROR")
@@ -66,17 +64,6 @@ class ExtrafalloffsMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_wavefalloff", "Wave falloff")
-
-class BlenderNoiseMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_BlenderNoise_menu"
-    bl_label = "BlenderNoise Menu"
-
-    def draw(self, context):
-        layout = self.layout
-        insertNode(layout, "an_BLVectorTurbulance", "BL Vector Turbulence")
-        insertNode(layout, "an_BLVectorFractal", "BL Vector Fractal")
-        insertNode(layout, "an_BLVariableLacunarity", "BL Variable Lacunarity")
-        insertNode(layout, "an_BLVoronoi", "BL Voronoi")
 
 class MiscellaneousMenu(bpy.types.Menu):
     bl_idname = "AN_MT_Miscellaneous_menu"
