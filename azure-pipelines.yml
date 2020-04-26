@@ -1,5 +1,5 @@
 trigger:
-- extranodes
+- AN-bluefox
 stages:
 - stage: build
   displayName: Build
