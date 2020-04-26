@@ -73,3 +73,29 @@ stages:
         TargetFolder: '$(Build.ArtifactStagingDirectory)'
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: windowsBuild
+- stage: deploy
+  displayName: Deploy
+  condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
+  jobs:
+    - deployment:
+      displayName: Update Github Release
+      environment: animation-nodes-dev
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: GitHubRelease@1
+              displayName: 'Update Release'
+              inputs:
+                gitHubConnection: 'harisreedhar'
+                repositoryName: 'harisreedhar/AN_BLUEFOX'
+                action: 'edit'
+                tag: 'daily'
+                releaseNotesSource: 'inline'
+                assets: |
+                  $(Pipeline.Workspace)/linuxBuild/animation_nodes*.zip
+                  $(Pipeline.Workspace)/macOSBuild/animation_nodes*.zip
+                  $(Pipeline.Workspace)/windowsBuild/animation_nodes*.zip
+                assetUploadMode: 'replace'
+                isPreRelease: true
+                addChangeLog: false
