@@ -1,10 +1,5 @@
-# C/C++ with GCC
-# Build your C/C++ project with GCC using make.
-# Add steps that publish test results, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/apps/c-cpp/gcc
-
 trigger:
-- master
+- extranodes
 stages:
 - stage: build
   displayName: Build
@@ -15,7 +10,7 @@ stages:
       vmImage: ubuntu-18.04
     steps:
     - script: >-
-        docker run -v $PWD:/build ubuntu:rolling /bin/bash -c "
+        docker run -v $PWD:/build ubuntu:eoan /bin/bash -c "
         cd /build;
         apt-get -y update;
         apt-get -y install python3.7 cython3 g++;
@@ -78,3 +73,29 @@ stages:
         TargetFolder: '$(Build.ArtifactStagingDirectory)'
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: windowsBuild
+- stage: deploy
+  displayName: Deploy
+  condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
+  jobs:
+    - deployment:
+      displayName: Update Github Release
+      environment: animation-nodes-dev
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: GitHubRelease@1
+              displayName: 'Update Release'
+              inputs:
+                gitHubConnection: 'harisreedhar'
+                repositoryName: 'harisreedhar/AN_BLUEFOX'
+                action: 'edit'
+                tag: 'daily'
+                releaseNotesSource: 'inline'
+                assets: |
+                  $(Pipeline.Workspace)/linuxBuild/animation_nodes*.zip
+                  $(Pipeline.Workspace)/macOSBuild/animation_nodes*.zip
+                  $(Pipeline.Workspace)/windowsBuild/animation_nodes*.zip
+                assetUploadMode: 'replace'
+                isPreRelease: true
+                addChangeLog: false
