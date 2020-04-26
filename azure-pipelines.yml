@@ -87,7 +87,7 @@ stages:
             - task: GitHubRelease@1
               displayName: 'Update Release'
               inputs:
-                gitHubConnection: 'harisreedhar'
+                gitHubConnection: 'github.com_harisreedhar'
                 repositoryName: 'harisreedhar/AN_BLUEFOX'
                 action: 'edit'
                 tag: 'daily'
