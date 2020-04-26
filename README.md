@@ -11,11 +11,10 @@ This is a Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_n
 * Memory Falloff 
 * Memory Node 
 * Inheritance effector
-* Blender Noise nodes(Turbulence, Fractal, Variable lacunarity, Voronoi)
+* Blender Noise nodes(Merged with Vector noise node)
 * Wave falloff
 * Formula falloff 
-* Texture falloff 
-* Mix falloff with additional operations(overlay, subtract) 
+* Texture falloff  
 * Spherical spiral
 * Fibonacci
 * Lorenz Attractor
