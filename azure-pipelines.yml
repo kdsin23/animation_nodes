@@ -90,7 +90,7 @@ stages:
                 gitHubConnection: 'github.com_harisreedhar'
                 repositoryName: 'harisreedhar/AN_BLUEFOX'
                 action: 'edit'
-                tag: 'daily'
+                tag: 'Daily'
                 releaseNotesSource: 'inline'
                 assets: |
                   $(Pipeline.Workspace)/linuxBuild/animation_nodes*.zip
