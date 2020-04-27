@@ -81,6 +81,8 @@ class AlphaNodesMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_RandomColor", "Random Color")
+        insertNode(layout, "an_DupliInstancer", "Dupli Instancer")
         insertNode(layout, "an_splinetracer", "Spline Tracer")
         insertNode(layout, "an_MemoryNode", "Memory Node")
         insertNode(layout, "an_Memoryfalloff", "Memory Falloff")

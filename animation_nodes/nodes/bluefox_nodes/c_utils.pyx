@@ -5,7 +5,7 @@ from ... data_structures cimport (
     VirtualVector3DList, VirtualEulerList, VirtualFloatList, VirtualDoubleList,
     Action, ActionEvaluator, PathIndexActionChannel,
     BoundedAction, BoundedActionEvaluator,Color,
-    ColorList
+    ColorList, PolygonIndicesList, IntegerList
 )
 
 from ... math cimport (
@@ -21,6 +21,7 @@ from ... math cimport (
 from..matrix.c_utils import* 
 from mathutils import Matrix, Euler
 from math import *
+from ... math cimport abs as absNumber
 from ... math import matrix4x4ListToEulerList
 from ... math cimport (add, subtract, multiply, divide_Save, modulo_Save,
                        sin, cos, tan, asin_Save, acos_Save, atan, atan2, hypot,
@@ -29,6 +30,7 @@ from ... math cimport (add, subtract, multiply, divide_Save, modulo_Save,
 
 from libc.math cimport sqrt
 from libc.math cimport M_PI as PI
+from ... algorithms.lists.random import generateRandomVectors
 
 def matrixlerp(Matrix4x4List matricesA, Matrix4x4List matricesB, DoubleList influences):
     cdef Py_ssize_t count = max(matricesA.getLength(),matricesB.getLength())
@@ -103,3 +105,14 @@ def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influen
         out_vectorlist.data[i].y = vectorsA.data[i].y * (1-influences.data[i]) + vectorsB.data[i].y * influences.data[i]
         out_vectorlist.data[i].z = vectorsA.data[i].z * (1-influences.data[i]) + vectorsB.data[i].z * influences.data[i]
     return out_vectorlist
+
+def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint normalized):
+    cdef Py_ssize_t i
+    cdef Vector3DList randomVectors = generateRandomVectors(seed, count, scale, normalized)
+    cdef ColorList colors = ColorList(length = count)
+    for i in range(count):
+        r = absNumber(randomVectors.data[i].x)
+        g = absNumber(randomVectors.data[i].y)
+        b = absNumber(randomVectors.data[i].z)
+        colors.data[i] = Color(r, g, b, 1)
+    return colors    
