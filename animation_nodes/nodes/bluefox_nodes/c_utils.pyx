@@ -5,9 +5,8 @@ from ... data_structures cimport (
     VirtualVector3DList, VirtualEulerList, VirtualFloatList, VirtualDoubleList,
     Action, ActionEvaluator, PathIndexActionChannel,
     BoundedAction, BoundedActionEvaluator,Color,
-    ColorList, PolygonIndicesList, IntegerList
+    ColorList, PolygonIndicesList, IntegerList, PolySpline, BezierSpline
 )
-
 from ... math cimport (
     Vector3, Euler3, Matrix4, toMatrix4,toVector3,
     multMatrix4, toPyMatrix4,
@@ -19,15 +18,16 @@ from ... math cimport (
     setMatrixTranslation,
     transposeMatrix_Inplace)
 from..matrix.c_utils import* 
-from mathutils import Matrix, Euler
+from mathutils import Matrix, Euler, Vector
 from math import *
+from ... algorithms.random import getRandom3DVector
+from ... algorithms.random import uniformRandomDoubleWithTwoSeeds
 from ... math cimport abs as absNumber
 from ... math import matrix4x4ListToEulerList
 from ... math cimport (add, subtract, multiply, divide_Save, modulo_Save,
                        sin, cos, tan, asin_Save, acos_Save, atan, atan2, hypot,
                        power_Save, floor, ceil, sqrt_Save, invert, reciprocal_Save,
                        snap_Save, copySign, floorDivision_Save, logarithm_Save)
-
 from libc.math cimport sqrt
 from libc.math cimport M_PI as PI
 from ... algorithms.lists.random import generateRandomVectors
@@ -115,4 +115,47 @@ def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint no
         g = absNumber(randomVectors.data[i].y)
         b = absNumber(randomVectors.data[i].z)
         colors.data[i] = Color(r, g, b, 1)
-    return colors    
+    return colors  
+
+def inheritanceCurve(Vector3DList vA, Vector3DList vB, Vector3DList pathPoints, float varMin, float varMax, 
+                            float randomScale, float smoothness, DoubleList influences, resolution):
+
+    cdef Py_ssize_t i, j
+    cdef Py_ssize_t count = vA.getLength()
+    cdef Py_ssize_t pathCount = pathPoints.getLength()
+    cdef float parameter, newParameter, randomNumber
+    cdef Vector3 v
+    cdef Vector3DList newPoints = Vector3DList(length = count)
+    cdef FloatList radii =  FloatList(length = pathCount + 2)
+    cdef FloatList tilts =  FloatList(length = pathCount + 2)
+    cdef Vector3DList handles = Vector3DList(length = pathCount + 2)
+    cdef Vector3DList randomVectors = generateRandomVectors(1, count, randomScale, False)
+    radii.fill(0)
+    tilts.fill(0)
+    handles.fill([0,0,0])
+
+    for i in range(count):
+        newSplinePoints = Vector3DList()
+        newSplinePoints.append(vA[i])
+        for j in range(pathCount):
+            v.x = pathPoints.data[j].x + randomVectors.data[i].x
+            v.y = pathPoints.data[j].y + randomVectors.data[i].y
+            v.z = pathPoints.data[j].z + randomVectors.data[i].z
+            newSplinePoints.append(Vector((v.x, v.y, v.z)))
+        newSplinePoints.append(vB[i])
+        if smoothness == 0:
+            newSpline = PolySpline(newSplinePoints, radii, tilts, False)
+        else:    
+            newSpline = BezierSpline(newSplinePoints, handles, handles, radii, tilts, False)
+            newSpline.smoothAllHandles(smoothness)
+        newSpline.ensureUniformConverter(resolution)
+        randomNumber = uniformRandomDoubleWithTwoSeeds(i, 0, varMin, varMax)
+        parameter = (1.0 + randomNumber) * influences[i]
+        newParameter = min(max(parameter, 0), 1)
+        newParameter = newSpline.toUniformParameter(newParameter)
+        newPoints[i] = newSpline.evaluatePoint(newParameter)
+
+    return newPoints        
+
+
+

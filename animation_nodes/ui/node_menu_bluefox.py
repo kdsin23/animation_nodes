@@ -17,7 +17,7 @@ def drawMenu(self, context):
     if drawNodeTreeChooser(layout, context):
         return
     layout.separator()
-    layout.menu("AN_MT_bluefox_menu", text = "Bluefox Nodes", icon = "MESH_MONKEY")
+    layout.menu("AN_MT_bluefox_menu", text = "BlueFox Nodes", icon = "MESH_MONKEY")
     layout.separator()
  
 def drawNodeTreeChooser(layout, context):
@@ -39,15 +39,10 @@ class BluefoxMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.separator()
         layout.menu("AN_MT_Effectors_menu", text = "Effectors")
-        layout.separator()
         layout.menu("AN_MT_extrafalloffs_menu", text = "Extra Falloffs")
-        layout.separator()
         layout.menu("AN_MT_Miscellaneous_menu", text = "Miscellaneous")
-        layout.separator()
         layout.menu("AN_MT_AlphaNodes_menu", text = "AlphaNodes", icon = "ERROR")
-        layout.separator()
         
 class EffectorMenu(bpy.types.Menu):
     bl_idname = "AN_MT_Effectors_menu"
@@ -63,6 +58,7 @@ class ExtrafalloffsMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_Texturefalloff", "Texture falloff")
         insertNode(layout, "an_wavefalloff", "Wave falloff")
 
 class MiscellaneousMenu(bpy.types.Menu):
@@ -87,10 +83,8 @@ class AlphaNodesMenu(bpy.types.Menu):
         insertNode(layout, "an_MemoryNode", "Memory Node")
         insertNode(layout, "an_Memoryfalloff", "Memory Falloff")
         insertNode(layout, "an_Colormix2", "Color Mix 2")
-        insertNode(layout, "an_Texturefalloff", "Texture falloff")
-        insertNode(layout, "an_Formulafalloff", "Formula falloff")
-        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloffs-2")
-
+        insertNode(layout, "an_Formulafalloff", "Formula Falloff")
+        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloff 2")
 
 def insertNode(layout, type, text, settings = {}, icon = "NONE"):
     operator = layout.operator("node.add_node", text = text, icon = icon)

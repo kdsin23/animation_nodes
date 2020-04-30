@@ -2,18 +2,19 @@ import bpy
 import numpy
 from math import *
 from bpy.props import *
-from ... base_types import AnimationNode
-from ... data_structures import *
 from ... events import propertyChanged
-from..falloff.custom_falloff import CustomFalloff
+from ... base_types import AnimationNode
+from .. falloff . custom_falloff import CustomFalloff
+from ... data_structures import DoubleList, FloatList
 
 class Formulafalloff(bpy.types.Node, AnimationNode):
     bl_idname = "an_Formulafalloff"
     bl_label = "Formula falloff"
+    bl_width_default = 300
     errorHandlingType = "EXCEPTION"
 
     def create(self):
-        self.newInput("Integer", "count", "count", value = 1.0, minValue = 0)
+        self.newInput("Integer", "Count", "count", value = 1.0, minValue = 0)
         self.newInput("Text", "Formula", "formula", value = "a*(sin(((id / count) + t) * f * 360.0))", update = propertyChanged) 
         self.newInput("Float", "t-Time", "time", value = 0.1)      
         self.newInput("Float", "f-frequency", "f", value = 0.01)
