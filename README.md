@@ -6,6 +6,8 @@ This is a Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_n
 * #### [Download Windows Build](https://github.com/harisreedhar/AN_BLUEFOX/releases/download/Daily/animation_nodes_v2_1_windows_py37.zip)
 
 ### Additional nodes :
+* Marching Cubes
+* BMesh smooth
 * Random Color
 * Spline Tracer
 * Dupli Instancer
