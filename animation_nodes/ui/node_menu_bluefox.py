@@ -77,6 +77,9 @@ class AlphaNodesMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_MarchingCubes", "Marching Cubes")
+        insertNode(layout, "an_MeshGrid", "Mesh Grid")
+        insertNode(layout, "an_BMeshSmoothNode", "BMesh Smooth")
         insertNode(layout, "an_RandomColor", "Random Color")
         insertNode(layout, "an_DupliInstancer", "Dupli Instancer")
         insertNode(layout, "an_splinetracer", "Spline Tracer")
