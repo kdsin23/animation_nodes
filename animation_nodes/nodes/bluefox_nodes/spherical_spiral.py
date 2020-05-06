@@ -1,10 +1,9 @@
 import bpy
 import numpy as np
+from math import pi
 from mathutils import Vector
-from ... data_structures import Vector3DList
-from ..number.c_utils import *
-from math import *
 from ... base_types import AnimationNode
+from ... data_structures import Vector3DList
 
 class Spherical_spiral(bpy.types.Node, AnimationNode):
     bl_idname = "an_Spherical_spiral"
@@ -28,7 +27,7 @@ class Spherical_spiral(bpy.types.Node, AnimationNode):
             y=np.sqrt(1-(t*t))*np.sin(a*pi*t+p)*scale
             z=t*scale
             points=np.vstack([x,y,z]).T
-            return Vector3DList.fromValues(points)
+            return Vector3DList.fromNumpyArray(points.astype('float32').flatten())
         except ValueError:
             self.raiseErrorMessage("Error")
             return   

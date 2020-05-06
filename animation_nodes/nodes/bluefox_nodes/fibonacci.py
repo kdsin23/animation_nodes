@@ -36,7 +36,7 @@ class fibonaccii(bpy.types.Node, AnimationNode):
             self.newInput("Float", "Scale", "scale", value = 1)
         
             self.newOutput("Vector List", "Points", "Points_out")
-
+            
     def draw(self, layout):
         layout.prop(self, "mode")
 
@@ -58,7 +58,7 @@ class fibonaccii(bpy.types.Node, AnimationNode):
         y=np.sin(theta)*r
         z=np.zeros(n.size)
         points=np.vstack([x,y,z]).T
-        return Vector3DList.fromValues(points)
+        return Vector3DList.fromNumpyArray(points.astype('float32').flatten())
 
     def execute_fibonacci_numbers(self, x1, x2, count, maxValue):
         if x1 is None or x2 is None:

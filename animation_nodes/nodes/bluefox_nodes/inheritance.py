@@ -7,7 +7,7 @@ from ... base_types import AnimationNode, VectorizedSocket
 from ... events import executionCodeChanged, propertyChanged
 from .. spline . spline_evaluation_base import SplineEvaluationBase
 from..bluefox_nodes.c_utils import matrix_lerp, vector_lerp, inheritanceCurve
-from ... data_structures import DoubleList, Matrix4x4List, Vector3DList, VirtualMatrix4x4List, VirtualVector3DList
+from ... data_structures import DoubleList, Matrix4x4List, Vector3DList, VirtualMatrix4x4List, VirtualVector3DList, FloatList
 
 inheritancemodeItems = [
     ("VECTORS", "Vectors", "Vector list in", "", 0),
@@ -183,5 +183,5 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     def snap_number( self, nums, step ):
         num=np.asarray(nums)
         step_result = np.round( num / step ) * step if step != 0 else num
-        return step_result.tolist() 
+        return FloatList.fromNumpyArray(step_result.astype('float32')) 
       

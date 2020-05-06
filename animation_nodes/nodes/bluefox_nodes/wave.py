@@ -60,8 +60,9 @@ class Wavefalloff(bpy.types.Node, AnimationNode):
         elif self.mode == "TRIANGULAR":
             out = self.triangularwave_fun(n, offset, freq, amp, angle, step, fallback)
         elif self.mode == "SAW":
-            out = self.sawwave_fun(n, offset, freq, amp, angle, step, fallback)             
-        return CustomFalloff(FloatList.fromValues(out), fallback), DoubleList.fromValues(out)
+            out = self.sawwave_fun(n, offset, freq, amp, angle, step, fallback)
+        values = FloatList.fromNumpyArray(out.astype('float32'))                 
+        return CustomFalloff(values, fallback), values
 
     def execute_Manual(self, n, offset, freq, amp, angle, step, fallback):
         if self.mode == "SINE":
@@ -72,7 +73,8 @@ class Wavefalloff(bpy.types.Node, AnimationNode):
             out = self.triangularwave_fun(n, offset, freq, amp, angle, step, fallback)
         elif self.mode == "SAW":
             out = self.sawwave_fun(n, offset, freq, amp, angle, step, fallback)   
-        return CustomFalloff(FloatList.fromValues(out), fallback), DoubleList.fromValues(out)   
+        values = FloatList.fromNumpyArray(out.astype('float32'))                 
+        return CustomFalloff(values, fallback), values  
 
     def sinewave_fun(self, n, offset, freq, amp, angle, step, fallback):
         z=np.linspace(0.00, 1.00, num=n, endpoint=False)

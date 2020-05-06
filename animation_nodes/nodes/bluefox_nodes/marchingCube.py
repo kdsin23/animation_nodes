@@ -27,7 +27,7 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
                 samples = mcData[0]
                 b1n, b2n = mcData[1], mcData[2]
                 if not type(field) is np.ndarray:
-                    func_values = np.array(field)
+                    func_values = field.asNumpyArray()
                 else:
                     func_values = field
                 func_values = func_values.reshape((samples, samples, samples))
