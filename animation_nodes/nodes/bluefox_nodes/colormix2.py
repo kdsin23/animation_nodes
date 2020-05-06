@@ -3,7 +3,7 @@ import numpy as np
 from bpy.props import *
 from ... base_types import AnimationNode, VectorizedSocket
 from ... events import executionCodeChanged, propertyChanged
-from ... data_structures import Color, ColorList, VirtualColorList, VirtualDoubleList, DoubleList
+from ... data_structures import Color, ColorList, FloatList
 
 colormodeItems = [
     ("MIX", "Mix", "Mix", "", 0),
@@ -51,59 +51,59 @@ class Colormix2(bpy.types.Node, AnimationNode):
     def execute(self, colorsA, colorsB, factors, alpha):
         if not self.usecolorAList: colorsA = ColorList.fromValues([colorsA])
         if not self.usecolorBList: colorsB = ColorList.fromValues([colorsB])
-        if not self.usefactorList: factors = DoubleList.fromValue(factors)
+        if not self.usefactorList: factors = FloatList.fromValues([factors])
 
-        if len(colorsA) == 0 or len(colorsB) == 0 or len(factors) == 0:
-            self.raiseErrorMessage("Reconnect Output Socket")
+        lenA = len(colorsA)
+        lenB = len(colorsB)
+        lenF = len(factors)
+
+        if lenA == 0 or lenB == 0 or lenF == 0:
+            self.raiseErrorMessage("Reconnect Sockets")
             return ColorList()
+        try:    
+            colA = colorsA.asNumpyArray().reshape(lenA, 4)
+            colB = colorsB.asNumpyArray().reshape(lenB, 4)
+            factor = factors.asNumpyArray()
+            
+            mode = self.mode
 
-        if len(colorsA) == len(colorsB) == len(factors):
-            colA = np.array(colorsA)
-            colB = np.array(colorsB)
-            factor = np.array(factors)
-        else:
-            maxLength = max(max(len(colorsA), len(colorsB)), len(factors))
-            colA = np.array(VirtualColorList.create(colorsA, colorsA[-1]).materialize(maxLength))
-            colB = np.array(VirtualColorList.create(colorsB, colorsB[-1]).materialize(maxLength))
-            factor = np.array(VirtualDoubleList.create(factors, factors[-1]).materialize(maxLength))
+            if mode == "ADD":
+                result = colA + colB
+            elif mode == "SUBTRACT":
+                result = colA - colB
+            elif mode == "MULTIPLY":
+                result = colA * colB
+            elif mode == "SCREEN":
+                result = 1 - (1 - colA) * (1 - colB)   
+            elif mode == "LIGHTEN":
+                result = np.maximum(colA, colB)
+            elif mode == "DARKEN":
+                result = np.minimum(colA, colB)    
+            elif mode == "OVERLAY":                 #Overlay function needs work
+                if np.any([colA < 0.5]):
+                    result = 2 * colA * colB
+                else:
+                    result = 1 - 2 * (1 - colA) * (1 - colB)
+            elif mode == "MIX":
+                result = colB
 
-        mode = self.mode
+            out = self.color_mix(colA, result, factor)
+            out[:,-1] = alpha
 
-        if mode == "ADD":
-            result = colA + colB
-        elif mode == "SUBTRACT":
-            result = colA - colB
-        elif mode == "MULTIPLY":
-            result = colA * colB
-        elif mode == "SCREEN":
-            result = 1 - (1 - colA) * (1 - colB)   
-        elif mode == "LIGHTEN":
-            result = np.maximum(colA, colB)
-        elif mode == "DARKEN":
-            result = np.minimum(colA, colB)    
-        elif mode == "OVERLAY":                 #Overlay function needs work
-            if np.any([colA < 0.5]):
-                result = 2 * colA * colB
+            if self.clamp:
+                out = np.clip(out, 0.00, 1.00)
+    
+            if self.usecolorAList == 0 and self.usecolorBList == 0 and self.usefactorList == 0:
+                return ColorList.fromNumpyArray(out.astype('float32').flatten())[0]
             else:
-                result = 1 - 2 * (1 - colA) * (1 - colB)
-        elif mode == "MIX":
-            result = colB
+                return ColorList.fromNumpyArray(out.astype('float32').flatten())
+        except ValueError:
+               self.raiseErrorMessage("Length Mismatch")
+               return
 
-        out = self.color_mix(colA, result, factor)
-        out[:,-1] = alpha
-
-        if self.clamp:
-            out = np.clip(out, 0.00, 1.00)
-   
-        if self.usecolorAList == 0 and self.usecolorBList == 0 and self.usefactorList == 0:
-            return ColorList.fromValues(out)[0]
-        else:
-            return ColorList.fromValues(out)           
-         
     def color_mix(self, colorsA, colorsB, factor):
         shaped_factor = np.repeat(factor, 4).reshape(-1, 4)
         if self.clamp:
             shaped_factor = np.clip(shaped_factor, 0.00, 1.00) 
         return (1 - shaped_factor) * colorsA + shaped_factor * colorsB
     
-   
