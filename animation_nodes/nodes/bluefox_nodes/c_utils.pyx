@@ -96,7 +96,6 @@ def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
     return composeMatrices(count, translations_out, rotations_out, scales_out)
 
 def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influences):
-    print(dir(VirtualVector3DList))
     cdef Py_ssize_t count = max(vectorsA.getLength(), vectorsB.getLength())
     cdef Py_ssize_t i
     cdef Vector3DList out_vectorlist = Vector3DList(length = count)
