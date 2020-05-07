@@ -16,10 +16,10 @@ class DupliInstancerNode(bpy.types.Node, AnimationNode):
     errorHandlingType = "EXCEPTION"
     bl_width_default = 160
 
-    useDisplay = BoolProperty(name = "Display Instancer", default = True, update = propertyChanged)
-    useRender = BoolProperty(name = "Render Instancer", default = True, update = propertyChanged)
-
     __annotations__ = {}
+
+    __annotations__["useDisplay"] = BoolProperty(name = "Display Instancer", default = True, update = propertyChanged)
+    __annotations__["useRender"] = BoolProperty(name = "Render Instancer", default = True, update = propertyChanged)
 
     __annotations__["mode"] = EnumProperty(name = "Mode", default = "VERTS",
         items = dupliModeItems, update = AnimationNode.refresh)

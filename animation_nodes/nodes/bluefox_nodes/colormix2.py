@@ -20,13 +20,13 @@ class Colormix2(bpy.types.Node, AnimationNode):
     bl_idname = "an_Colormix2"
     bl_label = "Color Mix 2"
     errorHandlingType = "EXCEPTION"
-
+    
     __annotations__ = {}
     
     __annotations__["mode"] = EnumProperty(name = "Type", default = "MIX",
         items = colormodeItems, update = AnimationNode.refresh)
 
-    clamp = BoolProperty(name = "Clamp", default = True, update = propertyChanged)    
+    __annotations__["clamp"] = BoolProperty(name = "Clamp", default = True, update = propertyChanged)    
 
     usecolorAList: VectorizedSocket.newProperty()
     usecolorBList: VectorizedSocket.newProperty()
@@ -64,7 +64,7 @@ class Colormix2(bpy.types.Node, AnimationNode):
             colA = colorsA.asNumpyArray().reshape(lenA, 4)
             colB = colorsB.asNumpyArray().reshape(lenB, 4)
             factor = factors.asNumpyArray()
-            
+
             mode = self.mode
 
             if mode == "ADD":
