@@ -19,7 +19,6 @@ from ... math cimport (
     transposeMatrix_Inplace)
 from..matrix.c_utils import* 
 from mathutils import Matrix, Euler, Vector
-from math import *
 from ... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated 
 from ... algorithms.random import getRandom3DVector
 from ... algorithms.random import uniformRandomDoubleWithTwoSeeds
@@ -106,6 +105,16 @@ def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influen
         out_vectorlist.data[i].z = vectorsA.data[i].z * (1-influences.data[i]) + vectorsB.data[i].z * influences.data[i]
     return out_vectorlist
 
+def euler_lerp(EulerList eulersA, EulerList eulersB, DoubleList influences):
+    cdef Py_ssize_t count = max(eulersA.getLength(), eulersB.getLength())
+    cdef Py_ssize_t i
+    cdef EulerList out_eulerlist = EulerList(length = count)
+    for i in range(count):
+        out_eulerlist.data[i].x = eulersA.data[i].x * (1-influences.data[i]) + eulersB.data[i].x * influences.data[i]
+        out_eulerlist.data[i].y = eulersA.data[i].y * (1-influences.data[i]) + eulersB.data[i].y * influences.data[i]
+        out_eulerlist.data[i].z = eulersA.data[i].z * (1-influences.data[i]) + eulersB.data[i].z * influences.data[i]
+    return out_eulerlist
+
 def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint normalized):
     cdef Py_ssize_t i
     cdef Vector3DList randomVectors = generateRandomVectors(seed, count, scale, normalized)
@@ -117,7 +126,7 @@ def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint no
         colors.data[i] = Color(r, g, b, 1)
     return colors  
 
-def inheritanceCurve(Vector3DList vA, Vector3DList vB, Vector3DList pathPoints, float varMin, float varMax, 
+def inheritanceCurveOld(Vector3DList vA, Vector3DList vB, Vector3DList pathPoints, float varMin, float varMax, 
                             float randomScale, float smoothness, DoubleList influences, resolution):
 
     cdef Py_ssize_t i, j
@@ -179,3 +188,84 @@ def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DLi
         scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y * strength 
         scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z * strength      
     return composeMatrices(count, translations_out, rotations_out, scales_out), interpolatedStrengths           
+
+def inheritanceCurveVector(Vector3DList vA, Vector3DList vB, Vector3DList splinePoints, float randomScale, DoubleList influences):
+    cdef Py_ssize_t i, j, bIndex, aIndex
+    cdef Py_ssize_t count = vA.getLength()
+    cdef Py_ssize_t splinePointCount = splinePoints.getLength()
+    cdef Py_ssize_t innerLength = splinePointCount + 2
+    cdef double f, influence
+    cdef Vector3DList out_vectorlist = Vector3DList(length = count)
+    cdef Vector3DList innerVectorList = Vector3DList(length = innerLength)
+    cdef Vector3DList randomVectors = generateRandomVectors(1, count, randomScale, False)
+    for i in range(count):
+        innerVectorList.data[0] = vA.data[i]
+        for j in range(splinePointCount):
+            innerVectorList.data[j+1].x = splinePoints.data[j].x + randomVectors.data[i].x
+            innerVectorList.data[j+1].y = splinePoints.data[j].y + randomVectors.data[i].y
+            innerVectorList.data[j+1].z = splinePoints.data[j].z + randomVectors.data[i].z
+        innerVectorList.data[innerLength - 1] = vB.data[i]
+        f = influences.data[i] * (innerLength - 1)
+        influence = f % 1 
+        bIndex = int(max(min(floor(f), innerLength - 1), 0))
+        aIndex = int(max(min(ceil(f), innerLength - 1), 0))
+        out_vectorlist.data[i].x = innerVectorList.data[bIndex].x * (1-influence) + innerVectorList.data[aIndex].x * influence
+        out_vectorlist.data[i].y = innerVectorList.data[bIndex].y * (1-influence) + innerVectorList.data[aIndex].y * influence
+        out_vectorlist.data[i].z = innerVectorList.data[bIndex].z * (1-influence) + innerVectorList.data[aIndex].z * influence
+    return out_vectorlist
+
+def inheritanceCurveEuler(EulerList eA, EulerList eB, EulerList splineEulers, DoubleList influences):
+    cdef Py_ssize_t i, j, bIndex, aIndex
+    cdef Py_ssize_t count = eA.getLength()
+    cdef Py_ssize_t splineEulerCount = splineEulers.getLength()
+    cdef Py_ssize_t innerLength = splineEulerCount + 2
+    cdef double f, influence
+    cdef EulerList outEulerlist = EulerList(length = count)
+    cdef EulerList innerEulerList = EulerList(length = innerLength)
+    for i in range(count):
+        innerEulerList.data[0] = eA.data[i]
+        for j in range(splineEulerCount):
+            innerEulerList.data[j+1].x = splineEulers.data[j].x
+            innerEulerList.data[j+1].y = splineEulers.data[j].y
+            innerEulerList.data[j+1].z = splineEulers.data[j].z
+        innerEulerList.data[innerLength - 1] = eB.data[i]
+        f = influences.data[i] * (innerLength - 1)
+        influence = f % 1 
+        bIndex = int(max(min(floor(f), innerLength - 1), 0))
+        aIndex = int(max(min(ceil(f), innerLength - 1), 0))
+        outEulerlist.data[i].x = innerEulerList.data[bIndex].x * (1-influence) + innerEulerList.data[aIndex].x * influence
+        outEulerlist.data[i].y = innerEulerList.data[bIndex].y * (1-influence) + innerEulerList.data[aIndex].y * influence
+        outEulerlist.data[i].z = innerEulerList.data[bIndex].z * (1-influence) + innerEulerList.data[aIndex].z * influence
+    return outEulerlist    
+
+def inheritanceCurveMatrix(Matrix4x4List mA, Matrix4x4List mB, Vector3DList splinePoints, EulerList splineEulers, float randomScale, DoubleList influences, bint align):
+    cdef Vector3DList tA = extractMatrixTranslations(mA)
+    cdef Vector3DList tB = extractMatrixTranslations(mB)
+    cdef EulerList rA = extractMatrixRotations(mA)
+    cdef EulerList rB = extractMatrixRotations(mB)
+    cdef Vector3DList sA = extractMatrixScales(mA)
+    cdef Vector3DList sB = extractMatrixScales(mB)
+    cdef int count = max(mA.getLength(), mB.getLength())
+    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(tA, (0, 0, 0))
+    cdef VirtualEulerList rotations_out = VirtualEulerList.create(rA, (0, 0, 0))
+    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(sA, (1, 1, 1))
+    cdef Vector3DList translationCurve = inheritanceCurveVector(tA, tB, splinePoints, randomScale, influences)
+    cdef EulerList rotationCurve = EulerList()
+    if align:
+        rotationCurve = inheritanceCurveEuler(rA, rB, splineEulers, influences)
+    for i in range(count):
+        translations_out.get(i).x = translationCurve.data[i].x
+        translations_out.get(i).y = translationCurve.data[i].y
+        translations_out.get(i).z = translationCurve.data[i].z
+        if align:
+            rotations_out.get(i).x = rotationCurve.data[i].x
+            rotations_out.get(i).y = rotationCurve.data[i].y
+            rotations_out.get(i).z = rotationCurve.data[i].z
+        else:
+            rotations_out.get(i).x = rA.data[i].x * (1-influences.data[i]) + rB.data[i].x * influences.data[i]
+            rotations_out.get(i).y = rA.data[i].y * (1-influences.data[i]) + rB.data[i].y * influences.data[i]
+            rotations_out.get(i).z = rA.data[i].z * (1-influences.data[i]) + rB.data[i].z * influences.data[i]    
+        scales_out.get(i).x = sA.data[i].x * (1-influences.data[i]) + sB.data[i].x * influences.data[i]
+        scales_out.get(i).y = sA.data[i].y * (1-influences.data[i]) + sB.data[i].y * influences.data[i]
+        scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]      
+    return composeMatrices(count, translations_out, rotations_out, scales_out)
