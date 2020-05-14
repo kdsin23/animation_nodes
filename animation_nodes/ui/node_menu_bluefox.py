@@ -42,6 +42,7 @@ class BluefoxMenu(bpy.types.Menu):
         layout.menu("AN_MT_Effectors_menu", text = "Effectors")
         layout.menu("AN_MT_extrafalloffs_menu", text = "Extra Falloffs")
         layout.menu("AN_MT_Miscellaneous_menu", text = "Miscellaneous")
+        layout.menu("AN_MT_ArrayNodes_menu", text = "Arrays")
         layout.menu("AN_MT_AlphaNodes_menu", text = "AlphaNodes", icon = "ERROR")
         
 class EffectorMenu(bpy.types.Menu):
@@ -89,6 +90,18 @@ class AlphaNodesMenu(bpy.types.Menu):
         insertNode(layout, "an_Colormix2", "Color Mix 2")
         insertNode(layout, "an_Formulafalloff", "Formula Falloff")
         insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloff 2")
+
+class ArrayNodesMenu(bpy.types.Menu):
+    bl_idname = "AN_MT_ArrayNodes_menu"
+    bl_label = "ArrayNodes Menu"
+
+    def draw(self, context):
+        layout = self.layout
+        insertNode(layout, "an_ConvertToArray", "Convert To Array")
+        insertNode(layout, "an_ConvertFromArray", "Convert From Array")
+        insertNode(layout, "an_ArrayMath", "Array Math") 
+        insertNode(layout, "an_ArrayReshape", "Array Reshape") 
+        insertNode(layout, "an_ArrayRandom", "Random Sample")     
 
 def insertNode(layout, type, text, settings = {}, icon = "NONE"):
     operator = layout.operator("node.add_node", text = text, icon = icon)
