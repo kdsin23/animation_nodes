@@ -3,6 +3,7 @@ from bpy.props import *
 from ... base_types import AnimationNode
 from ... data_structures import Vector3DList
 from .. bluefox_nodes.c_utils import stepEffector
+from .. number . c_utils import mapRange_DoubleList
 from .. matrix.c_utils import extractMatrixTranslations
 from ... events import propertyChanged, executionCodeChanged
 from ... data_structures import Matrix4x4List, DoubleList, Vector3DList, EulerList
@@ -27,6 +28,7 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
         self.newInput("Euler", "Rotation", "rotation")
         self.newInput("Vector", "Scale", "scale")
         self.newInput("Falloff", "Falloff", "falloff")
+        self.newInput("Boolean", "Clamp", "clamp", value = 0, hide = True)
         self.newInput("Float", "Min", "minValue", value = 0, hide = True)
         self.newInput("Float", "Max", "maxValue", value = 1, hide = True)
         self.newInput("Interpolation", "Interpolation", "interpolation", defaultDrawType = "PROPERTY_ONLY")
@@ -48,7 +50,7 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
         self.inputs[2].hide = not self.useRotation
         self.inputs[3].hide = not self.useScale
               
-    def execute(self, matrices, location, rotation, scale, falloff, minValue, maxValue, interpolation):
+    def execute(self, matrices, location, rotation, scale, falloff, clamp, minValue, maxValue, interpolation):
         if matrices is None:
             return Matrix4x4List()   
         else:
@@ -63,7 +65,7 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
             v = Vector3DList.fromValue(location)
             e = EulerList.fromValue(rotation)
             s = Vector3DList.fromValue(scale)
-            newMatrices, effectorStrength =  stepEffector(matrices, v, e, s, influences, interpolation, minValue, maxValue)
+            newMatrices, effectorStrength =  stepEffector(matrices, v, e, s, influences, interpolation, minValue, maxValue, clamp)
             return newMatrices, effectorStrength, influences      
 
     def getFalloffEvaluator(self, falloff):

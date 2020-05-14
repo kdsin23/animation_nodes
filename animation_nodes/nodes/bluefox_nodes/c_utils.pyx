@@ -166,27 +166,42 @@ def inheritanceCurveOld(Vector3DList vA, Vector3DList vB, Vector3DList pathPoint
     return newPoints 
 
 def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DList s, DoubleList influences, 
-                        Interpolation interpolation, double minValue, double maxValue):
+                        Interpolation interpolation, double minValue, double maxValue, bint clamp):
     cdef Vector3DList tA = extractMatrixTranslations(matrices)
     cdef EulerList rA = extractMatrixRotations(matrices)
     cdef Vector3DList sA = extractMatrixScales(matrices)
     cdef int count = matrices.getLength()
+    cdef double varMin = 0, varMax = 1
+    if not clamp:
+        varMin = minValue
+        varMax = maxValue   
     cdef DoubleList strengths = range_DoubleList_StartStop(count, 0.00, 1.00)
-    cdef DoubleList interpolatedStrengths = mapRange_DoubleList_Interpolated(strengths, interpolation, 0, 1, minValue, maxValue)
+    cdef DoubleList interpolatedStrengths = mapRange_DoubleList_Interpolated(strengths, interpolation, 0, 1, varMin, varMax)
     cdef VirtualVector3DList translations_out = VirtualVector3DList.create(tA, (0, 0, 0))
     cdef VirtualEulerList rotations_out = VirtualEulerList.create(rA, (0, 0, 0))
     cdef VirtualVector3DList scales_out = VirtualVector3DList.create(sA, (1, 1, 1))
     for i in range(count):
         strength = interpolatedStrengths.data[i]
-        translations_out.get(i).x = tA.data[i].x + influences.data[i] * v.data[0].x * strength
-        translations_out.get(i).y = tA.data[i].y + influences.data[i] * v.data[0].y * strength
-        translations_out.get(i).z = tA.data[i].z + influences.data[i] * v.data[0].z * strength
-        rotations_out.get(i).x = rA.data[i].x + influences.data[i] * e.data[0].x * strength
-        rotations_out.get(i).y = rA.data[i].y + influences.data[i] * e.data[0].y * strength
-        rotations_out.get(i).z = rA.data[i].z + influences.data[i] * e.data[0].z * strength
-        scales_out.get(i).x = sA.data[i].x + influences.data[i] * s.data[0].x * strength
-        scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y * strength 
-        scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z * strength      
+        if clamp:
+            translations_out.get(i).x = tA.data[i].x + max(min(influences.data[i] * v.data[0].x * strength, maxValue), minValue)
+            translations_out.get(i).y = tA.data[i].y + max(min(influences.data[i] * v.data[0].y * strength, maxValue), minValue)
+            translations_out.get(i).z = tA.data[i].z + max(min(influences.data[i] * v.data[0].z * strength, maxValue), minValue)
+            rotations_out.get(i).x = rA.data[i].x + max(min(influences.data[i] * e.data[0].x * strength, maxValue), minValue)
+            rotations_out.get(i).y = rA.data[i].y + max(min(influences.data[i] * e.data[0].y * strength, maxValue), minValue)
+            rotations_out.get(i).z = rA.data[i].z + max(min(influences.data[i] * e.data[0].z * strength, maxValue), minValue)
+            scales_out.get(i).x = sA.data[i].x + max(min(influences.data[i] * s.data[0].x * strength, maxValue), minValue)
+            scales_out.get(i).y = sA.data[i].y + max(min(influences.data[i] * s.data[0].y * strength, maxValue), minValue) 
+            scales_out.get(i).z = sA.data[i].z + max(min(influences.data[i] * s.data[0].z * strength, maxValue), minValue)
+        else:
+            translations_out.get(i).x = tA.data[i].x + influences.data[i] * v.data[0].x * strength
+            translations_out.get(i).y = tA.data[i].y + influences.data[i] * v.data[0].y * strength
+            translations_out.get(i).z = tA.data[i].z + influences.data[i] * v.data[0].z * strength
+            rotations_out.get(i).x = rA.data[i].x + influences.data[i] * e.data[0].x * strength
+            rotations_out.get(i).y = rA.data[i].y + influences.data[i] * e.data[0].y * strength
+            rotations_out.get(i).z = rA.data[i].z + influences.data[i] * e.data[0].z * strength
+            scales_out.get(i).x = sA.data[i].x + influences.data[i] * s.data[0].x * strength
+            scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y * strength 
+            scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z * strength          
     return composeMatrices(count, translations_out, rotations_out, scales_out), interpolatedStrengths           
 
 def inheritanceCurveVector(Vector3DList vA, Vector3DList vB, Vector3DList splinePoints, float randomScale, DoubleList influences):
