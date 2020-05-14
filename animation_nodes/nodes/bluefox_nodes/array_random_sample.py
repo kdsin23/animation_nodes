@@ -13,10 +13,7 @@ class ArrayRandomNode(bpy.types.Node, AnimationNode):
         self.newInput("Text", "Shape", "shape", value = "5,3")
         self.newInput("Integer", "Seed", "seed")
         self.newOutput("NDArray", "Array", "arrayOut") 
-
-    def draw(self, layout):
-        layout.prop(self, "mode", text = "")
-                                               
+                                   
     def execute(self, shape, seed):
         try:
             s = tuple(map(int, shape.split(',')))
