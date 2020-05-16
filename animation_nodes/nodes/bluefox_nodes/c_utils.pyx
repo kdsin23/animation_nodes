@@ -324,7 +324,7 @@ cdef evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturb
     return out
 
 @cython.cdivision(True)
-cdef curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
+def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
         Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize):
     cdef:
         Py_ssize_t i
@@ -377,13 +377,20 @@ cdef curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturb
     return outnoise
 
 def CurlEulerIntegrate(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
-    Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize, Py_ssize_t iteration):
+    Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize, Py_ssize_t iteration, bint fullList):
     cdef Py_ssize_t i
     cdef Vector3DList result
+    cdef Vector3DList fullResult
     result = vectors
+    fullResult = vectors
     for i in range(iteration):
         if i != 0:
             result = vectorListADD(curlNoise(result, noiseType, fractalType, perturbType, epsilon, 
-                    seed, octaves, amplitude, frequency, scale, offset, normalize), result)       
-    return result
+                    seed, octaves, amplitude, frequency, scale, offset, normalize), result)
+            if fullList:        
+                fullResult.extend(result)
+    if fullList:                           
+        return fullResult
+    else:
+        return result    
                

@@ -1,8 +1,8 @@
 import bpy
 from bpy.props import *
 from ... events import propertyChanged
-from . c_utils import CurlEulerIntegrate
 from ... base_types import AnimationNode
+from . c_utils import curlNoise, CurlEulerIntegrate
 
 noiseTypesData = [
     ("SIMPLEX", "Simplex", "", "Simplex", 0),
@@ -34,15 +34,24 @@ class CurlNoiseNode(bpy.types.Node, AnimationNode):
     fractalType : EnumProperty(name = "Fractal Type", default = "FBM",
         items = fractalTypesData, update = AnimationNode.refresh)    
     perturbType : EnumProperty(name = "Perturb Type", default = "NONE",
-        items = perturbTypesData, update = AnimationNode.refresh)    
+        items = perturbTypesData, update = AnimationNode.refresh)
+
+    eulerIntegration: BoolProperty(name = "Euler Integartion", default = True,
+        description = "Enable Euler Integration",
+        update = AnimationNode.refresh)  
+
+    createList: BoolProperty(name = "Full List", default = False,
+        description = "Create full list of entire iterations",
+        update = AnimationNode.refresh)        
 
     def create(self):
         self.newInput("Vector List", "Vectors", "vectors")
-        self.newInput("Integer", "Iteration", "iteration", minValue = 0)
-        self.newInput("Boolean", "Normalize", "normalize")
+        if self.eulerIntegration:
+            self.newInput("Integer", "Iterations", "iteration", minValue = 0)
+        self.newInput("Boolean", "Normalize", "normalize", hide = True)
         self.newInput("Float", "Epsilon", "epsilon", value = 0.1)
         self.newInput("Integer", "Seed", "seed")
-        self.newInput("Float", "Amplitude", "amplitude", value = 1)
+        self.newInput("Float", "Amplitude", "amplitude", value = 1, hide = True)
         self.newInput("Float", "Frequency", "frequency", value = 0.3)
         self.newInput("Integer", "Octaves", "octaves", value = 1, minValue = 1, maxValue = 10)
         self.newInput("Vector", "Scale", "scale", value = (0.5,0.5,0.5))
@@ -51,14 +60,26 @@ class CurlNoiseNode(bpy.types.Node, AnimationNode):
 
     def draw(self, layout):
         layout.prop(self, "noiseType", text = "")
-
+        row = layout.row(align = True)
+        row.prop(self, "eulerIntegration", text = "Euler Integration", toggle = True)
+        row2 = row.row(align = True)
+        row2.prop(self, "createList", text = "", icon = "LINENUMBERS_ON")
+        row2.active = self.eulerIntegration
+        
     def drawAdvanced(self, layout):
         layout.prop(self, "fractalType")
         layout.prop(self, "perturbType")
 
     def getExecutionCode(self, required):
-            yield "vectorsOut = self.executeCurl(vectors, iteration, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset)"            
+        if self.eulerIntegration:
+            yield "vectorsOut = self.executeCurlIntegration(vectors, iteration, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset)"
+        else:
+            yield "vectorsOut = self.executeCurlNoise(vectors, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset)"                
 
-    def executeCurl(self, vectors, iteration, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset):
+    def executeCurlIntegration(self, vectors, iteration, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset):
         return CurlEulerIntegrate(vectors, self.noiseType, self.fractalType, self.perturbType, epsilon, 
-                        seed, octaves, amplitude, frequency, scale, offset, normalize, iteration)
+                seed, octaves, amplitude, frequency, scale, offset, normalize, iteration, self.createList)
+
+    def executeCurlNoise(self, vectors, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset):
+        return curlNoise(vectors, self.noiseType, self.fractalType, self.perturbType, epsilon, 
+                seed, octaves, amplitude, frequency, scale, offset, normalize)            
