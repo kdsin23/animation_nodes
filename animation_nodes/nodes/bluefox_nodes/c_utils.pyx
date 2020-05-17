@@ -278,7 +278,7 @@ def inheritanceCurveMatrix(Matrix4x4List mA, Matrix4x4List mB, Vector3DList spli
         scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]      
     return composeMatrices(count, translations_out, rotations_out, scales_out)
 
-cdef vectorListADD(Vector3DList a, Vector3DList b):
+cdef Vector3DList vectorListADD(Vector3DList a, Vector3DList b):
     cdef Py_ssize_t i
     for i in range(a.getLength()):
         a.data[i].x += b.data[i].x
@@ -287,7 +287,7 @@ cdef vectorListADD(Vector3DList a, Vector3DList b):
     return a 
 
 #Curl reference: https://github.com/cabbibo/glsl-curl-noise
-cdef evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, int seed, 
+cdef Vector3DList evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, int seed, 
                                 int octaves, float amplitude, float frequency, scale, offset):
     cdef Py_ssize_t i
     cdef Py_ssize_t count = vectors.getLength()
@@ -295,14 +295,7 @@ cdef evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturb
     cdef Vector3DList vectors1 = Vector3DList(length = count)
     cdef Vector3DList vectors2 = Vector3DList(length = count)
     cdef Vector3DList out = Vector3DList(length = count)
-    for i in range(count):
-        vectors1.data[i].x = vectors.data[i].y - 19.1
-        vectors1.data[i].y = vectors.data[i].z + 33.4
-        vectors1.data[i].z = vectors.data[i].x + 47.2
-        vectors2.data[i].x = vectors.data[i].z + 74.2
-        vectors2.data[i].y = vectors.data[i].x - 124.5
-        vectors2.data[i].z = vectors.data[i].y + 99.4
-    noise = PyNoise()
+    cdef object noise = PyNoise()      
     noise.setNoiseType(noiseType)
     noise.setFractalType(fractalType)
     noise.setPerturbType(perturbType)
@@ -313,10 +306,16 @@ cdef evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturb
     noise.setAxisScales((scale.x,scale.y,scale.z))
     noise.setOctaves(min(max(octaves, 1), 10))
     noise.setCellularJitter(0)
+    for i in range(count):
+        vectors1.data[i].x = vectors.data[i].y - 19.1
+        vectors1.data[i].y = vectors.data[i].z + 33.4
+        vectors1.data[i].z = vectors.data[i].x + 47.2
+        vectors2.data[i].x = vectors.data[i].z + 74.2
+        vectors2.data[i].y = vectors.data[i].x - 124.5
+        vectors2.data[i].z = vectors.data[i].y + 99.4
     x = noise.calculateList(vectors)
     y = noise.calculateList(vectors1)
     z = noise.calculateList(vectors2)
-    i = 0
     for i in range(count):
         out.data[i].x = x.data[i]
         out.data[i].y = y.data[i]
@@ -336,8 +335,8 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
         Vector3DList y1 = Vector3DList(length = count)
         Vector3DList z0 = Vector3DList(length = count)
         Vector3DList z1 = Vector3DList(length = count)
-        Vector3DList pos_x0, pos_x1, pos_y0, pos_y1, pos_z0, pos_z1
         Vector3DList outnoise = Vector3DList(length = count)
+        Vector3DList pos_x0, pos_x1, pos_y0, pos_y1, pos_z0, pos_z1
     for i in range(count):
         x0.data[i].x = vectors.data[i].x - epsilon
         x0.data[i].y = vectors.data[i].y
@@ -364,25 +363,25 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
     pos_z0 = evalNoise(z0, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
     pos_z1 = evalNoise(z1, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
     divisor = 1.0 /2.0 * epsilon
-    i = 0
     for i in range(count):
         outnoise.data[i].x = (pos_y1.data[i].z - pos_y0.data[i].z - pos_z1.data[i].y + pos_z0.data[i].y) * divisor
         outnoise.data[i].y = (pos_z1.data[i].x - pos_z0.data[i].x - pos_x1.data[i].z + pos_x0.data[i].z) * divisor
         outnoise.data[i].z = (pos_x1.data[i].y - pos_x0.data[i].y - pos_y1.data[i].x + pos_y0.data[i].x) * divisor
         if normalize:
             modV = sqrt(outnoise.data[i].x * outnoise.data[i].x + outnoise.data[i].y * outnoise.data[i].y + outnoise.data[i].z * outnoise.data[i].z)
-            outnoise.data[i].x /= modV
-            outnoise.data[i].y /= modV
-            outnoise.data[i].z /= modV
+            if modV != 0:
+                outnoise.data[i].x /= modV
+                outnoise.data[i].y /= modV
+                outnoise.data[i].z /= modV
+            else:
+                outnoise.data[i].x = outnoise.data[i].y = outnoise.data[i].z = 0    
     return outnoise
 
 def CurlEulerIntegrate(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
     Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize, Py_ssize_t iteration, bint fullList):
     cdef Py_ssize_t i
-    cdef Vector3DList result
-    cdef Vector3DList fullResult
-    result = vectors
-    fullResult = vectors
+    cdef Vector3DList result, fullResult
+    result = fullResult = vectors
     for i in range(iteration):
         if i != 0:
             result = vectorListADD(curlNoise(result, noiseType, fractalType, perturbType, epsilon, 
