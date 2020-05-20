@@ -19,12 +19,10 @@ class Wavefalloff(bpy.types.Node, AnimationNode):
     bl_idname = "an_wavefalloff"
     bl_label = "Wave falloff"
 
-    __annotations__ = {}
-
-    __annotations__["mode"] = EnumProperty(name = "Type ", default = "SINE",
+    mode : EnumProperty(name = "Type ", default = "SINE",
         items = modeItems, update = AnimationNode.refresh)
-
-    __annotations__["check_animated"] = BoolProperty(name = "Animated", default = False, update = AnimationNode.refresh)  
+        
+    check_animated : BoolProperty(name = "Animated", default = False, update = AnimationNode.refresh)  
 
     def create(self):
         self.newInput("Integer", "n", "n", value = 10, minValue = 1)

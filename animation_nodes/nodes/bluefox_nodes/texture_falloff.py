@@ -18,9 +18,7 @@ class Texturefalloff(bpy.types.Node, AnimationNode):
     bl_idname = "an_Texturefalloff"
     bl_label = "Texture falloff"
 
-    __annotations__ = {}
-
-    __annotations__["mode"] = EnumProperty(name = "Use", default = "GREY",
+    mode : EnumProperty(name = "Use", default = "GREY",
         items = modeItems, update = AnimationNode.refresh)
 
     useVectorList: VectorizedSocket.newProperty()    
