@@ -1,7 +1,6 @@
 import cython
 from libc.math cimport sqrt
 from .. matrix.c_utils import* 
-from libc.math cimport M_PI as PI
 from ... math cimport abs as absNumber
 from mathutils import Matrix, Euler, Vector
 from ... math import matrix4x4ListToEulerList
@@ -264,7 +263,7 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
         Vector3DList bigList_y = Vector3DList(length = countBig)
         Vector3DList bigList_z = Vector3DList(length = countBig)
         Vector3DList evaluatedList = Vector3DList(length = countBig)
-        object noise = PyNoise()
+    noise = PyNoise()
     noise.setNoiseType(noiseType)
     noise.setFractalType(fractalType)
     noise.setPerturbType(perturbType)
