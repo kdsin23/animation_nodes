@@ -249,11 +249,11 @@ cdef Vector3DList vectorListADD(Vector3DList a, Vector3DList b):
 
 #Curl reference: https://github.com/cabbibo/glsl-curl-noise
 @cython.cdivision(True)
-def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
+def curlNoise(Vector3DList vectorsIn, str noiseType, str fractalType, str perturbType, float epsilon, 
         Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize):
     cdef:
         Py_ssize_t i
-        Py_ssize_t count = vectors.getLength()
+        Py_ssize_t count = vectorsIn.getLength()
         Py_ssize_t countBig = count * 6
         double divisor, vecLen
         FloatList x, y, z
@@ -275,24 +275,24 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
     noise.setOctaves(min(max(octaves, 1), 10))
     noise.setCellularJitter(0)
     for i in range(count):
-        bigList_x.data[i].x = vectors.data[i].x - epsilon
-        bigList_x.data[i].y = vectors.data[i].y
-        bigList_x.data[i].z = vectors.data[i].z
-        bigList_x.data[i+count].x = vectors.data[i].x + epsilon
-        bigList_x.data[i+count].y = vectors.data[i].y
-        bigList_x.data[i+count].z = vectors.data[i].z
-        bigList_x.data[i+count*2].x = vectors.data[i].x
-        bigList_x.data[i+count*2].y = vectors.data[i].y - epsilon
-        bigList_x.data[i+count*2].z = vectors.data[i].z
-        bigList_x.data[i+count*3].x = vectors.data[i].x
-        bigList_x.data[i+count*3].y = vectors.data[i].y + epsilon
-        bigList_x.data[i+count*3].z = vectors.data[i].z
-        bigList_x.data[i+count*4].x = vectors.data[i].x
-        bigList_x.data[i+count*4].y = vectors.data[i].y
-        bigList_x.data[i+count*4].z = vectors.data[i].z - epsilon
-        bigList_x.data[i+count*5].x = vectors.data[i].x
-        bigList_x.data[i+count*5].y = vectors.data[i].y
-        bigList_x.data[i+count*5].z = vectors.data[i].z + epsilon
+        bigList_x.data[i].x = vectorsIn.data[i].x - epsilon
+        bigList_x.data[i].y = vectorsIn.data[i].y
+        bigList_x.data[i].z = vectorsIn.data[i].z
+        bigList_x.data[i+count].x = vectorsIn.data[i].x + epsilon
+        bigList_x.data[i+count].y = vectorsIn.data[i].y
+        bigList_x.data[i+count].z = vectorsIn.data[i].z
+        bigList_x.data[i+count*2].x = vectorsIn.data[i].x
+        bigList_x.data[i+count*2].y = vectorsIn.data[i].y - epsilon
+        bigList_x.data[i+count*2].z = vectorsIn.data[i].z
+        bigList_x.data[i+count*3].x = vectorsIn.data[i].x
+        bigList_x.data[i+count*3].y = vectorsIn.data[i].y + epsilon
+        bigList_x.data[i+count*3].z = vectorsIn.data[i].z
+        bigList_x.data[i+count*4].x = vectorsIn.data[i].x
+        bigList_x.data[i+count*4].y = vectorsIn.data[i].y
+        bigList_x.data[i+count*4].z = vectorsIn.data[i].z - epsilon
+        bigList_x.data[i+count*5].x = vectorsIn.data[i].x
+        bigList_x.data[i+count*5].y = vectorsIn.data[i].y
+        bigList_x.data[i+count*5].z = vectorsIn.data[i].z + epsilon
     for i in range(countBig):
         bigList_y.data[i].x = bigList_x.data[i].y - 19.1
         bigList_y.data[i].y = bigList_x.data[i].z + 33.4
@@ -325,14 +325,17 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
                 curlyNoise.data[i].y /= vecLen
                 curlyNoise.data[i].z /= vecLen
             else:
-                curlyNoise.data[i].x = curlyNoise.data[i].y = curlyNoise.data[i].z = 0
+                curlyNoise.data[i].x = 0  
+                curlyNoise.data[i].y = 0
+                curlyNoise.data[i].z = 0
     return curlyNoise
 
 def EulerIntegrateCurl(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
     Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize, Py_ssize_t iteration, bint fullList):
     cdef Py_ssize_t i
     cdef Vector3DList result, fullResult
-    result = fullResult = vectors
+    result = vectors.copy()
+    fullResult = vectors.copy()
     for i in range(iteration):
         if i != 0:
             result = vectorListADD(curlNoise(result, noiseType, fractalType, perturbType, epsilon, 
