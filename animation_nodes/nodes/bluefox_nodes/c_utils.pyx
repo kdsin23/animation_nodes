@@ -119,45 +119,7 @@ def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint no
         g = absNumber(randomVectors.data[i].y)
         b = absNumber(randomVectors.data[i].z)
         colors.data[i] = Color(r, g, b, 1)
-    return colors  
-
-def inheritanceCurveOld(Vector3DList vA, Vector3DList vB, Vector3DList pathPoints, float varMin, float varMax, 
-                            float randomScale, float smoothness, DoubleList influences, resolution):
-
-    cdef Py_ssize_t i, j
-    cdef Py_ssize_t count = vA.getLength()
-    cdef Py_ssize_t pathCount = pathPoints.getLength()
-    cdef float parameter, newParameter, randomNumber
-    cdef Vector3 v
-    cdef Vector3DList newPoints = Vector3DList(length = count)
-    cdef FloatList radii =  FloatList(length = pathCount + 2)
-    cdef FloatList tilts =  FloatList(length = pathCount + 2)
-    cdef Vector3DList handles = Vector3DList(length = pathCount + 2)
-    cdef Vector3DList randomVectors = generateRandomVectors(1, count, randomScale, False)
-    radii.fill(0)
-    tilts.fill(0)
-    handles.fill([0,0,0])
-    for i in range(count):
-        newSplinePoints = Vector3DList()
-        newSplinePoints.append(vA[i])
-        for j in range(pathCount):
-            v.x = pathPoints.data[j].x + randomVectors.data[i].x
-            v.y = pathPoints.data[j].y + randomVectors.data[i].y
-            v.z = pathPoints.data[j].z + randomVectors.data[i].z
-            newSplinePoints.append(Vector((v.x, v.y, v.z)))
-        newSplinePoints.append(vB[i])
-        if smoothness == 0:
-            newSpline = PolySpline(newSplinePoints, radii, tilts, False)
-        else:    
-            newSpline = BezierSpline(newSplinePoints, handles, handles, radii, tilts, False)
-            newSpline.smoothAllHandles(smoothness)
-        newSpline.ensureUniformConverter(resolution)
-        randomNumber = uniformRandomDoubleWithTwoSeeds(i, 0, varMin, varMax)
-        parameter = (1.0 + randomNumber) * influences[i]
-        newParameter = min(max(parameter, 0), 1)
-        newParameter = newSpline.toUniformParameter(newParameter)
-        newPoints[i] = newSpline.evaluatePoint(newParameter)
-    return newPoints 
+    return colors
 
 def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DList s, DoubleList influences, 
                         Interpolation interpolation, double minValue, double maxValue, bint clamp):
