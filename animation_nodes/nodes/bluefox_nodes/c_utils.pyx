@@ -1,5 +1,4 @@
 import cython
-import numpy as np
 from libc.math cimport sqrt
 from .. matrix.c_utils import* 
 from libc.math cimport M_PI as PI
