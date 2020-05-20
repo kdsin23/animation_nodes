@@ -273,7 +273,7 @@ def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbT
     noise.setOffset(offset)
     noise.setSeed(seed)
     noise.setAxisScales((scale.x, scale.y, scale.z))
-    noise.setOctaves(octaves)
+    noise.setOctaves(min(max(octaves, 1), 10))
     noise.setCellularJitter(0)
     for i in range(count):
         bigList_x.data[i].x = vectors.data[i].x - epsilon
