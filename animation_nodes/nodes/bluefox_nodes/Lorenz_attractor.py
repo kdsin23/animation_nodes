@@ -8,7 +8,6 @@ from ... data_structures import VirtualVector3DList, VirtualDoubleList
 class LorenzAttractorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_lorenz"
     bl_label = "lorenz attractor"
-    bl_width_default = 160
 
     def create(self):
         self.newInput("Integer", "Iteration", "n", minValue = 0)
@@ -21,20 +20,17 @@ class LorenzAttractorNode(bpy.types.Node, AnimationNode):
         self.newOutput("Vector List", "Vertices", "vertices")
     
     def execute(self, n, dt, s, r, b, initial, scale):
-
         xs = VirtualDoubleList.create(0, 0).materialize(n + 1)
         ys = VirtualDoubleList.create(0, 0).materialize(n + 1)
         zs = VirtualDoubleList.create(0, 0).materialize(n + 1)
         points =  Vector3DList()
         xs[0], ys[0], zs[0] = (initial.x, initial.y, initial.z)
-
         for i in range(n):
             x_dot, y_dot, z_dot = self.lorenz(xs[i], ys[i], zs[i], s, r, b)
             xs[i + 1] = xs[i] + (x_dot * dt)
             ys[i + 1] = ys[i] + (y_dot * dt)
             zs[i + 1] = zs[i] + (z_dot * dt)
             points.append((xs[i]*scale, ys[i]*scale, zs[i]*scale))
-
         return points    
 
     def lorenz(self, x, y, z, s, r, b):
