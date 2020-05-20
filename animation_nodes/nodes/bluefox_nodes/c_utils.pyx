@@ -1,4 +1,5 @@
 import cython
+import numpy as np
 from libc.math cimport sqrt
 from .. matrix.c_utils import* 
 from libc.math cimport M_PI as PI
@@ -86,7 +87,7 @@ def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
         rotations_out.get(i).z = rA.data[i].z * (1-influences.data[i]) + rB.data[i].z * influences.data[i]
         scales_out.get(i).x = sA.data[i].x * (1-influences.data[i]) + sB.data[i].x * influences.data[i]
         scales_out.get(i).y = sA.data[i].y * (1-influences.data[i]) + sB.data[i].y * influences.data[i]
-        scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]      
+        scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]
     return composeMatrices(count, translations_out, rotations_out, scales_out)
 
 def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influences):
@@ -167,7 +168,7 @@ def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DLi
     cdef double varMin = 0, varMax = 1
     if not clamp:
         varMin = minValue
-        varMax = maxValue   
+        varMax = maxValue
     cdef DoubleList strengths = range_DoubleList_StartStop(count, 0.00, 1.00)
     cdef DoubleList interpolatedStrengths = mapRange_DoubleList_Interpolated(strengths, interpolation, 0, 1, varMin, varMax)
     cdef VirtualVector3DList translations_out = VirtualVector3DList.create(tA, (0, 0, 0))
@@ -193,9 +194,9 @@ def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DLi
             rotations_out.get(i).y = rA.data[i].y + influences.data[i] * e.data[0].y * strength
             rotations_out.get(i).z = rA.data[i].z + influences.data[i] * e.data[0].z * strength
             scales_out.get(i).x = sA.data[i].x + influences.data[i] * s.data[0].x * strength
-            scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y * strength 
-            scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z * strength          
-    return composeMatrices(count, translations_out, rotations_out, scales_out), interpolatedStrengths           
+            scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y * strength
+            scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z * strength
+    return composeMatrices(count, translations_out, rotations_out, scales_out), interpolatedStrengths
 
 def inheritanceCurveVector(Vector3DList vA, Vector3DList vB, Vector3DList splinePoints, float randomScale, DoubleList influences):
     cdef Py_ssize_t i, j, bIndex, aIndex
@@ -287,15 +288,22 @@ cdef Vector3DList vectorListADD(Vector3DList a, Vector3DList b):
     return a 
 
 #Curl reference: https://github.com/cabbibo/glsl-curl-noise
-cdef Vector3DList evalNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, int seed, 
-                                int octaves, float amplitude, float frequency, scale, offset):
-    cdef Py_ssize_t i
-    cdef Py_ssize_t count = vectors.getLength()
-    cdef FloatList x, y, z
-    cdef Vector3DList vectors1 = Vector3DList(length = count)
-    cdef Vector3DList vectors2 = Vector3DList(length = count)
-    cdef Vector3DList out = Vector3DList(length = count)
-    cdef object noise = PyNoise()      
+@cython.cdivision(True)
+def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
+        Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize):
+    cdef:
+        Py_ssize_t i
+        Py_ssize_t count = vectors.getLength()
+        Py_ssize_t countBig = count * 6
+        double divisor, vecLen
+        FloatList x, y, z
+        Vector3DList px0, px1, py0, py1, pz0, pz1 
+        Vector3DList curlyNoise = Vector3DList(length = count)
+        Vector3DList bigList_x = Vector3DList(length = countBig)
+        Vector3DList bigList_y = Vector3DList(length = countBig)
+        Vector3DList bigList_z = Vector3DList(length = countBig)
+        Vector3DList evaluatedList = Vector3DList(length = countBig)
+        object noise = PyNoise()
     noise.setNoiseType(noiseType)
     noise.setFractalType(fractalType)
     noise.setPerturbType(perturbType)
@@ -303,81 +311,64 @@ cdef Vector3DList evalNoise(Vector3DList vectors, str noiseType, str fractalType
     noise.setFrequency(frequency)
     noise.setOffset(offset)
     noise.setSeed(seed)
-    noise.setAxisScales((scale.x,scale.y,scale.z))
-    noise.setOctaves(min(max(octaves, 1), 10))
+    noise.setAxisScales((scale.x, scale.y, scale.z))
+    noise.setOctaves(octaves)
     noise.setCellularJitter(0)
     for i in range(count):
-        vectors1.data[i].x = vectors.data[i].y - 19.1
-        vectors1.data[i].y = vectors.data[i].z + 33.4
-        vectors1.data[i].z = vectors.data[i].x + 47.2
-        vectors2.data[i].x = vectors.data[i].z + 74.2
-        vectors2.data[i].y = vectors.data[i].x - 124.5
-        vectors2.data[i].z = vectors.data[i].y + 99.4
-    x = noise.calculateList(vectors)
-    y = noise.calculateList(vectors1)
-    z = noise.calculateList(vectors2)
-    for i in range(count):
-        out.data[i].x = x.data[i]
-        out.data[i].y = y.data[i]
-        out.data[i].z = z.data[i]
-    return out
-
-@cython.cdivision(True)
-def curlNoise(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
-        Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize):
-    cdef:
-        Py_ssize_t i
-        Py_ssize_t count = vectors.getLength()
-        double divisor, modV
-        Vector3DList x0 = Vector3DList(length = count)
-        Vector3DList x1 = Vector3DList(length = count)
-        Vector3DList y0 = Vector3DList(length = count)
-        Vector3DList y1 = Vector3DList(length = count)
-        Vector3DList z0 = Vector3DList(length = count)
-        Vector3DList z1 = Vector3DList(length = count)
-        Vector3DList outnoise = Vector3DList(length = count)
-        Vector3DList pos_x0, pos_x1, pos_y0, pos_y1, pos_z0, pos_z1
-    for i in range(count):
-        x0.data[i].x = vectors.data[i].x - epsilon
-        x0.data[i].y = vectors.data[i].y
-        x0.data[i].z = vectors.data[i].z
-        x1.data[i].x = vectors.data[i].x + epsilon
-        x1.data[i].y = vectors.data[i].y
-        x1.data[i].z = vectors.data[i].z
-        y0.data[i].x = vectors.data[i].x 
-        y0.data[i].y = vectors.data[i].y - epsilon
-        y0.data[i].z = vectors.data[i].z
-        y1.data[i].x = vectors.data[i].x 
-        y1.data[i].y = vectors.data[i].y + epsilon
-        y1.data[i].z = vectors.data[i].z
-        z0.data[i].x = vectors.data[i].x 
-        z0.data[i].y = vectors.data[i].y
-        z0.data[i].z = vectors.data[i].z - epsilon
-        z1.data[i].x = vectors.data[i].x 
-        z1.data[i].y = vectors.data[i].y
-        z1.data[i].z = vectors.data[i].z + epsilon
-    pos_x0 = evalNoise(x0, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
-    pos_x1 = evalNoise(x1, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset) 
-    pos_y0 = evalNoise(y0, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
-    pos_y1 = evalNoise(y1, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
-    pos_z0 = evalNoise(z0, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
-    pos_z1 = evalNoise(z1, noiseType, fractalType, perturbType, seed, octaves, amplitude, frequency, scale, offset)
+        bigList_x.data[i].x = vectors.data[i].x - epsilon
+        bigList_x.data[i].y = vectors.data[i].y
+        bigList_x.data[i].z = vectors.data[i].z
+        bigList_x.data[i+count].x = vectors.data[i].x + epsilon
+        bigList_x.data[i+count].y = vectors.data[i].y
+        bigList_x.data[i+count].z = vectors.data[i].z
+        bigList_x.data[i+count*2].x = vectors.data[i].x
+        bigList_x.data[i+count*2].y = vectors.data[i].y - epsilon
+        bigList_x.data[i+count*2].z = vectors.data[i].z
+        bigList_x.data[i+count*3].x = vectors.data[i].x
+        bigList_x.data[i+count*3].y = vectors.data[i].y + epsilon
+        bigList_x.data[i+count*3].z = vectors.data[i].z
+        bigList_x.data[i+count*4].x = vectors.data[i].x
+        bigList_x.data[i+count*4].y = vectors.data[i].y
+        bigList_x.data[i+count*4].z = vectors.data[i].z - epsilon
+        bigList_x.data[i+count*5].x = vectors.data[i].x
+        bigList_x.data[i+count*5].y = vectors.data[i].y
+        bigList_x.data[i+count*5].z = vectors.data[i].z + epsilon
+    for i in range(countBig):
+        bigList_y.data[i].x = bigList_x.data[i].y - 19.1
+        bigList_y.data[i].y = bigList_x.data[i].z + 33.4
+        bigList_y.data[i].z = bigList_x.data[i].x + 47.2
+        bigList_z.data[i].x = bigList_x.data[i].z + 74.2
+        bigList_z.data[i].y = bigList_x.data[i].x - 124.5
+        bigList_z.data[i].z = bigList_x.data[i].y + 99.4   
+    x = noise.calculateList(bigList_x)
+    y = noise.calculateList(bigList_y)
+    z = noise.calculateList(bigList_z)
+    for i in range(countBig):
+        evaluatedList.data[i].x = x.data[i]
+        evaluatedList.data[i].y = y.data[i]
+        evaluatedList.data[i].z = z.data[i]
+    px0 = evaluatedList[:count]
+    px1 = evaluatedList[count:count*2]
+    py0 = evaluatedList[count*2:count*3]
+    py1 = evaluatedList[count*3:count*4]
+    pz0 = evaluatedList[count*4:count*5]
+    pz1 = evaluatedList[count*5:count*6]
     divisor = 1.0 /2.0 * epsilon
     for i in range(count):
-        outnoise.data[i].x = (pos_y1.data[i].z - pos_y0.data[i].z - pos_z1.data[i].y + pos_z0.data[i].y) * divisor
-        outnoise.data[i].y = (pos_z1.data[i].x - pos_z0.data[i].x - pos_x1.data[i].z + pos_x0.data[i].z) * divisor
-        outnoise.data[i].z = (pos_x1.data[i].y - pos_x0.data[i].y - pos_y1.data[i].x + pos_y0.data[i].x) * divisor
+        curlyNoise.data[i].x = (py1.data[i].z - py0.data[i].z - pz1.data[i].y + pz0.data[i].y) * divisor
+        curlyNoise.data[i].y = (pz1.data[i].x - pz0.data[i].x - px1.data[i].z + px0.data[i].z) * divisor
+        curlyNoise.data[i].z = (px1.data[i].y - px0.data[i].y - py1.data[i].x + py0.data[i].x) * divisor
         if normalize:
-            modV = sqrt(outnoise.data[i].x * outnoise.data[i].x + outnoise.data[i].y * outnoise.data[i].y + outnoise.data[i].z * outnoise.data[i].z)
-            if modV != 0:
-                outnoise.data[i].x /= modV
-                outnoise.data[i].y /= modV
-                outnoise.data[i].z /= modV
+            vecLen = sqrt(curlyNoise.data[i].x * curlyNoise.data[i].x + curlyNoise.data[i].y * curlyNoise.data[i].y + curlyNoise.data[i].z * curlyNoise.data[i].z)
+            if vecLen != 0:
+                curlyNoise.data[i].x /= vecLen
+                curlyNoise.data[i].y /= vecLen
+                curlyNoise.data[i].z /= vecLen
             else:
-                outnoise.data[i].x = outnoise.data[i].y = outnoise.data[i].z = 0    
-    return outnoise
+                curlyNoise.data[i].x = curlyNoise.data[i].y = curlyNoise.data[i].z = 0
+    return curlyNoise
 
-def CurlEulerIntegrate(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
+def EulerIntegrateCurl(Vector3DList vectors, str noiseType, str fractalType, str perturbType, float epsilon, 
     Py_ssize_t seed, Py_ssize_t octaves, float amplitude, float frequency, scale, offset, bint normalize, Py_ssize_t iteration, bint fullList):
     cdef Py_ssize_t i
     cdef Vector3DList result, fullResult
@@ -386,10 +377,10 @@ def CurlEulerIntegrate(Vector3DList vectors, str noiseType, str fractalType, str
         if i != 0:
             result = vectorListADD(curlNoise(result, noiseType, fractalType, perturbType, epsilon, 
                     seed, octaves, amplitude, frequency, scale, offset, normalize), result)
-            if fullList:        
+            if fullList:
                 fullResult.extend(result)
-    if fullList:                           
+    if fullList:
         return fullResult
     else:
-        return result    
+        return result
                

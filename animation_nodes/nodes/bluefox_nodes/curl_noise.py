@@ -2,7 +2,7 @@ import bpy
 from bpy.props import *
 from ... events import propertyChanged
 from ... base_types import AnimationNode
-from . c_utils import curlNoise, CurlEulerIntegrate
+from . c_utils import curlNoise, EulerIntegrateCurl
 
 noiseTypesData = [
     ("SIMPLEX", "Simplex", "", "Simplex", 0),
@@ -77,7 +77,7 @@ class CurlNoiseNode(bpy.types.Node, AnimationNode):
             yield "vectorsOut = self.executeCurlNoise(vectors, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset)"                
 
     def executeCurlIntegration(self, vectors, iteration, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset):
-        return CurlEulerIntegrate(vectors, self.noiseType, self.fractalType, self.perturbType, epsilon, 
+        return EulerIntegrateCurl(vectors, self.noiseType, self.fractalType, self.perturbType, epsilon, 
                 seed, octaves, amplitude, frequency, scale, offset, normalize, iteration, self.createList)
 
     def executeCurlNoise(self, vectors, normalize, epsilon, seed, amplitude, frequency, octaves, scale, offset):
