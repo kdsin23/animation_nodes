@@ -63,7 +63,7 @@ class CurlNoiseNode(bpy.types.Node, AnimationNode):
         row = layout.row(align = True)
         row.prop(self, "eulerIntegration", text = "Euler Integration", toggle = True)
         row2 = row.row(align = True)
-        row2.prop(self, "createList", text = "", icon = "LINENUMBERS_ON")
+        row2.prop(self, "createList", text = "", icon = "PARTICLE_POINT")
         row2.active = self.eulerIntegration
         
     def drawAdvanced(self, layout):
