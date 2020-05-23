@@ -79,6 +79,7 @@ class AlphaNodesMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_RadialFalloff", "Radial Falloff")
         insertNode(layout, "an_CurlNoise", "Curl Noise")
         insertNode(layout, "an_MarchingCubes", "Marching Cubes")
         insertNode(layout, "an_MeshGrid", "Mesh Grid")
