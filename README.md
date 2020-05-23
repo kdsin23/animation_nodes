@@ -7,26 +7,26 @@ This is a Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_n
 |[MacOS Build](https://github.com/harisreedhar/AN_BLUEFOX/releases/download/Daily/animation_nodes_v2_1_macOS_py37.zip)         |
 |[Windows Build](https://github.com/harisreedhar/AN_BLUEFOX/releases/download/Daily/animation_nodes_v2_1_windows_py37.zip)          |`
 
-
  ## Extra Falloffs 
-- **Radial Falloff**
--  **Wave Falloff**
- - **Texture Falloff**
- - **Formula Falloff**
- -  **Memory Falloff**
-## C4D like Effectors
+- **Radial Falloff** - similar to radial field in c4d
+-  **Wave Falloff** - creates different forms of waves or ripples like sine, square, triangular, saw. 
+ - **Texture Falloff** - falloff based on texture
+ - **Formula Falloff** - creates falloff based on mathematical expressions
+ -  **Memory Falloff** - stores previous state of falloff
+## Effectors
 
-- **Inheritance Effector**
--  **Step Effector**
+- **Inheritance Effector** - inherit between matrices or vectors. Can be used for effects like morphing
+-  **Step Effector** - similar to step effector in c4d
 ## Other Nodes
 
-- **Spline Tracer**
-- **Dupli Instancer**
--  **Marching Cubes**
-- **Color Mix 2** (Vectorized and Blending Modes)
-- **Fibonacci Generator**
-- **Spherical Spiral**
-- **Lorenz Attractor**
-- **Bmesh Smooth**
-- **Memory Node**
-- **Random Color**
+- **Spline Tracer** - creates spline path from moving vector
+- **Curl Noise** - generates curly noise
+- **Dupli Instancer** -  creates instances of objects
+-  **Marching Cubes** - mesh generation from scalar field
+- **Color Mix 2** - vectorized inputs and Blending Modes
+- **Fibonacci** - 
+- **Spherical Spiral**  - 
+- **Lorenz Attractor** - 
+- **Bmesh Smooth** - 
+- **Memory Node** - 
+- **Random Color** -
