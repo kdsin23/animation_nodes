@@ -91,7 +91,7 @@ class AlphaNodesMenu(bpy.types.Menu):
         insertNode(layout, "an_Memoryfalloff", "Memory Falloff")
         insertNode(layout, "an_Colormix2", "Color Mix 2")
         insertNode(layout, "an_Formulafalloff", "Formula Falloff")
-        insertNode(layout, "an_MixFalloffsNodePlus", "Mix Falloff 2")
+        insertNode(layout, "an_CompositeFalloffsNode", "Composite Falloff")
 
 class ArrayNodesMenu(bpy.types.Menu):
     bl_idname = "AN_MT_ArrayNodes_menu"
