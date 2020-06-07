@@ -13,10 +13,7 @@ class ArrayReshapeNode(bpy.types.Node, AnimationNode):
         self.newInput("Text", "Shape", "shape", value = "1,1")
         self.newInput("NDArray", "Array", "array")
         self.newOutput("NDArray", "Array", "arrayOut") 
-
-    def draw(self, layout):
-        layout.prop(self, "mode", text = "")
-                                               
+                                          
     def execute(self, shape, array):
         try:
             s = tuple(map(int, shape.split(',')))
