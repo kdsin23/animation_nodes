@@ -53,6 +53,7 @@ class EffectorMenu(bpy.types.Menu):
         layout = self.layout
         insertNode(layout, "an_Inheritanceffector", "Inheritance Effector")
         insertNode(layout, "an_StepEffector", "Step Effector")
+        insertNode(layout, "an_TargetEffector", "Target Effector")
 
 class ExtrafalloffsMenu(bpy.types.Menu):
     bl_idname = "AN_MT_extrafalloffs_menu"
