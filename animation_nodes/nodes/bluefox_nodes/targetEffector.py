@@ -3,8 +3,7 @@ import numpy as np
 from bpy.props import *
 from mathutils import Vector 
 from .. matrix.c_utils import*
-from ... math import scaleVector3DList
-from ... utils.depsgraph import getEvaluatedID
+from .. bluefox_nodes.c_utils import matrix_lerp
 from ... algorithms.rotations import directionsToMatrices
 from ... base_types import AnimationNode, VectorizedSocket
 from ... events import propertyChanged, executionCodeChanged
@@ -16,6 +15,7 @@ guideAxisItems  = [(axis, axis, "") for axis in ("X", "Y", "Z")]
 class TargetEffectorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_TargetEffector"
     bl_label = "Target Effector"
+    bl_width_default = 150
 
     trackAxis: EnumProperty(items = trackAxisItems, update = propertyChanged, default = "Z")
     guideAxis: EnumProperty(items = guideAxisItems, update = propertyChanged, default = "X")
@@ -26,8 +26,8 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
         self.updateSocketVisibility()
         executionCodeChanged()
 
-    useLocation: BoolProperty(update = checkedPropertiesChanged)
-    useRotation: BoolProperty(update = checkedPropertiesChanged)
+    useOffset: BoolProperty(update = checkedPropertiesChanged)
+    useDirection: BoolProperty(update = checkedPropertiesChanged)
     useScale: BoolProperty(update = checkedPropertiesChanged)
 
     def create(self):
@@ -36,49 +36,55 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
             ("Target", "target"), ("Targets", "targets")))
         self.newInput("Float", "Offset", "offset")
         self.newInput("Float", "Width", "width", value = 3.0)
+        self.newInput("Float", "Strength", "offsetStrength", value = 1.0)
         self.newInput("Vector", "Scale", "scaleIn")
         self.newInput("Falloff", "Falloff", "falloff")
         self.newOutput("Matrix List", "Matrices", "matricesOut")
         self.newOutput("Float List", "Effector Strength", "effectorStrength", hide = True)
+        self.newOutput("Float List", "Falloff Strength", "falloffStrength", hide = True)
 
         self.updateSocketVisibility()
 
     def draw(self, layout):
-        row = layout.row(align = True)
-        subrow = row.row(align = True)
-        subrow.prop(self, "useRotation", index = 1, text = "Rot", toggle = True, icon = "CON_TRACKTO") 
-        subrow.prop(self, "useLocation", index = 0, text = "Loc", toggle = True, icon = "TRANSFORM_ORIGINS")
-        subrow.prop(self, "useScale", index = 2, text = "Scale", toggle = True, icon = "FULLSCREEN_ENTER") 
-        if self.useRotation:
+        col = layout.column(align = True)
+        row = col.row(align = True)
+        row.prop(self, "useDirection", text = "Direction", toggle = True, icon = "CON_TRACKTO")
+        row = col.row(align = True)
+        row.prop(self, "useOffset", text = "Offset", toggle = True, icon = "TRANSFORM_ORIGINS")
+        row.prop(self, "useScale", text = "Scale", toggle = True, icon = "FULLSCREEN_ENTER")
+        if self.useDirection:
             layout.prop(self, "trackAxis", expand = True)
             layout.prop(self, "guideAxis", expand = True)
             if self.trackAxis[-1:] == self.guideAxis[-1:]:
-                layout.label(text = "Must be different", icon = "ERROR")
+                layout.label(text = "Must be different", icon = "ERROR")        
 
     def updateSocketVisibility(self):
-        self.inputs[2].hide = not self.useLocation
-        self.inputs[3].hide = not self.useLocation
-        self.inputs[4].hide = not self.useScale
+        self.inputs[2].hide = not self.useOffset
+        self.inputs[3].hide = not self.useOffset
+        self.inputs[4].hide = not self.useOffset
+        self.inputs[5].hide = not self.useScale
 
-    def execute(self, matrices, targets, offset, width, scaleIn, falloff):
+    def execute(self, matrices, targets, offset, width, offsetStrength, scaleIn, falloff):
         if not self.useTargetList: targets = [targets]
+        count = len(matrices)
         if len(targets) == 0 or len(matrices) == 0:
-            return Matrix4x4List(), DoubleList()
+            return Matrix4x4List(), DoubleList(), DoubleList()
         else:
-            if [self.useRotation, self.useLocation, self.useScale] == [0,0,0]:
-                return matrices, DoubleList()
-            else:    
+            DefaultList = DoubleList(length = count)
+            DefaultList.fill(0)
+            if [self.useDirection, self.useOffset, self.useScale] == [0,0,0]:
+                return matrices, DefaultList, DefaultList
+            else:
                 vectors = extractMatrixTranslations(matrices)
                 rotations = extractMatrixRotations(matrices)
                 scales = extractMatrixScales(matrices)
-                count = len(matrices)
                 vectorArray = vectors.asNumpyArray().reshape(count, 3)
-                if self.useRotation:
+                scalesArray = scales.asNumpyArray().reshape(count, 3)
+                if self.useDirection:
                     targetDirections = np.zeros((count, 3), dtype='float32')
                 targetOffsets = vectors.asNumpyArray().reshape(count, 3)
                 falloffEvaluator = self.getFalloffEvaluator(falloff)
-                influences = falloffEvaluator.evaluateList(vectors).asNumpyArray()
-                influencesReshaped = np.repeat(influences, 3).reshape(-1, 3)
+                influences = DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
                 strength = 0
                 for i, target in enumerate(targets):
                     flag = 1
@@ -87,37 +93,41 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     if scale < 0:
                         flag = -1
                     size = abs(scale) + offset
-                    t, s = self.targetSphericalDistance(vectorArray, center, size-1, width, flag)
-                    if self.useLocation:
-                        targetOffsets += t * influencesReshaped
-                    if self.useRotation:
+                    newPositions, distances = self.targetSphericalDistance(vectorArray, center, size-1, width, flag)
+                    if self.useOffset:
+                        targetOffsets += newPositions * offsetStrength
+                    if self.useDirection:
                         targetDirections += self.targetRotation(targetOffsets, center, flag)
+                    if self.useScale:
+                        scalesArray[:,0] += scaleIn.x * distances
+                        scalesArray[:,1] += scaleIn.y * distances
+                        scalesArray[:,2] += scaleIn.z * distances    
                     if i == 0:
-                        strength = s[:,0]    
+                        strength = distances
                     else:    
-                        strength += s[:,0]
-                _v = VirtualVector3DList.create(vectors, (0, 0, 0))
-                if self.useLocation:               
+                        strength += distances
+                newVectors = vectors.copy()
+                newRotations = rotations.copy()
+                newScales = scales.copy()
+                if self.useOffset:      
                     newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten())
-                    _v = VirtualVector3DList.create(newVectors, (0, 0, 0))
-                _r = VirtualEulerList.create(rotations, (0, 0, 0))
-                if self.useRotation:
+                if self.useDirection:
                     newRotations = directionsToMatrices(Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten()), Vector((0,0,1)), 
                                     self.trackAxis, self.guideAxis).toEulers(isNormalized = True)  
-                    _r = VirtualEulerList.create(newRotations, (0, 0, 0))    
-                _s = VirtualVector3DList.create(scales, (1, 1, 1))
                 if self.useScale:
-                    newScales = scales.asNumpyArray().reshape(count, 3)
-                    newScales += np.asarray(scaleIn) * influencesReshaped * s
-                    _s = VirtualVector3DList.create(Vector3DList.fromNumpyArray(newScales.astype('float32').flatten()), (1, 1, 1))
-                return composeMatrices(count, _v, _r, _s), DoubleList.fromNumpyArray(np.clip(strength, 0, 1).astype('double'))
+                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten())
+                _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
+                _r = VirtualEulerList.create(newRotations, (0, 0, 0))    
+                _s = VirtualVector3DList.create(newScales, (1, 1, 1))
+                newMatrices = composeMatrices(count, _v, _r, _s)
+                return matrix_lerp(matrices, newMatrices, influences), DoubleList.fromNumpyArray(np.clip(strength, 0, 1).astype('double')), influences
 
     def targetRotation(self, vectors, target, flag):
         temp = vectors - np.asarray(target)
-        vectorLength = np.sqrt(temp[:,0]*temp[:,0] + temp[:,1]*temp[:,1] + temp[:,2]*temp[:,2])
+        vectorLength = np.sqrt(temp[:,0] * temp[:,0] + temp[:,1] * temp[:,1] + temp[:,2] * temp[:,2])
         vectorLength[vectorLength == 0] = 0.00001
         reshapedLength = np.repeat(vectorLength, 3).reshape(-1, 3)
-        return temp/(reshapedLength * reshapedLength) * flag
+        return temp / (reshapedLength * reshapedLength) * flag
 
     def targetSphericalDistance(self, vectors, target, size, width, flag):
         if width < 0:
@@ -132,11 +142,12 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
         distance[distance <= minDistance] = 1
         distance[distance <= maxDistance] = 1 - (distance[distance <= maxDistance] - minDistance) * factor
         distance[distance > maxDistance] = 0
-        distance[distance > minDistance] = 0
+        distance = np.clip(distance,-1,1)
         temp = (vectors - np.asarray(target)) * flag
-        distanceReshaped = np.repeat(np.clip(distance, 0, 1), 3).reshape(-1, 3)
-        result = temp * distanceReshaped
-        return result, distanceReshaped
+        temp[:,0] *= distance
+        temp[:,1] *= distance
+        temp[:,2] *= distance
+        return temp, distance
 
     def distanceVectors(self, a, b):
         diff1 = a.x - b[:,0]
