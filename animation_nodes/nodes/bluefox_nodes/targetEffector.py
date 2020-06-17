@@ -98,6 +98,7 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                 targetOffsets = vectors.asNumpyArray().reshape(count, 3)
                 falloffEvaluator = self.getFalloffEvaluator(falloff)
                 influences = DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
+                influencesArray = influences.asNumpyArray()
                 strength = 0
                 for i, target in enumerate(targets):
                     flag = 1
@@ -108,13 +109,15 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     size = abs(scale) + distanceIn
                     newPositions, distances = self.targetSphericalDistance(vectorArray, center, size-1, width, flag)
                     if self.useOffset:
-                        targetOffsets += newPositions * offsetStrength
+                        targetOffsets[:,0] += newPositions[:,0] * offsetStrength * influencesArray
+                        targetOffsets[:,1] += newPositions[:,1] * offsetStrength * influencesArray
+                        targetOffsets[:,2] += newPositions[:,2] * offsetStrength * influencesArray
                     if self.useDirection:
                         targetDirections += self.targetRotation(targetOffsets, center, flag)
                     if self.useScale:
-                        scalesArray[:,0] += scaleIn.x * distances
-                        scalesArray[:,1] += scaleIn.y * distances
-                        scalesArray[:,2] += scaleIn.z * distances
+                        scalesArray[:,0] += scaleIn.x * distances * influencesArray
+                        scalesArray[:,1] += scaleIn.y * distances * influencesArray
+                        scalesArray[:,2] += scaleIn.z * distances * influencesArray
                     if i == 0:
                         strength = distances
                     else:    
@@ -122,15 +125,15 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                 newVectors = vectors
                 newRotations = rotations
                 newScales = scales
-                if self.useOffset:      
-                    newVectors = vector_lerp(vectors, Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten()), influences)
+                if self.useOffset:
+                    newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten())
                 if self.useDirection:
                     newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten())
                     newDirections = vector_lerp(Directions, newDirections, influences)
                     newDirections.normalize()
                     newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers(isNormalized = True)
                 if self.useScale:
-                    newScales = vector_lerp(scales, Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten()), influences)
+                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten())
                 _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
                 _r = VirtualEulerList.create(newRotations, (0, 0, 0))
                 _s = VirtualVector3DList.create(newScales, (1, 1, 1))
