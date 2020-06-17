@@ -1,16 +1,17 @@
 import bpy
 import numpy as np
 from bpy.props import *
-from mathutils import Vector 
 from .. matrix.c_utils import*
-from .. bluefox_nodes.c_utils import matrix_lerp
-from ... algorithms.rotations import directionsToMatrices
+from .. bluefox_nodes.c_utils import vector_lerp
 from ... base_types import AnimationNode, VectorizedSocket
 from ... events import propertyChanged, executionCodeChanged
+from ... algorithms.rotations import directionsToMatrices, eulersToDirections
 from ... data_structures import Vector3DList, VirtualVector3DList, VirtualEulerList, Matrix4x4List, DoubleList
 
 trackAxisItems = [(axis, axis, "") for axis in ("X", "Y", "Z", "-X", "-Y", "-Z")]
 guideAxisItems  = [(axis, axis, "") for axis in ("X", "Y", "Z")]
+directionAxisItems = [(axis, axis, "", "", i)
+                      for i, axis in enumerate(("X", "Y", "Z", "-X", "-Y", "-Z"))]
 
 class TargetEffectorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_TargetEffector"
@@ -19,6 +20,8 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
 
     trackAxis: EnumProperty(items = trackAxisItems, update = propertyChanged, default = "Z")
     guideAxis: EnumProperty(items = guideAxisItems, update = propertyChanged, default = "X")
+    directionAxis: EnumProperty(name = "Direction Axis", default = "Z",
+        items = directionAxisItems, update = propertyChanged)
 
     useTargetList: VectorizedSocket.newProperty()
 
@@ -29,15 +32,17 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
     useOffset: BoolProperty(update = checkedPropertiesChanged)
     useDirection: BoolProperty(update = checkedPropertiesChanged)
     useScale: BoolProperty(update = checkedPropertiesChanged)
+    considerRotationsIn: BoolProperty(name = "Consider Incoming Rotations", default = False, update = propertyChanged)
 
     def create(self):
         self.newInput("Matrix List", "Matrices", "matrices")
         self.newInput(VectorizedSocket("Matrix", "useTargetList",
             ("Target", "target"), ("Targets", "targets")))
-        self.newInput("Float", "Offset", "offset")
+        self.newInput("Float", "Distance", "distanceIn")
         self.newInput("Float", "Width", "width", value = 3.0)
         self.newInput("Float", "Strength", "offsetStrength", value = 1.0)
         self.newInput("Vector", "Scale", "scaleIn")
+        self.newInput("Vector", "Guide", "guideIn", value = (0,0,1), hide = True)
         self.newInput("Falloff", "Falloff", "falloff")
         self.newOutput("Matrix List", "Matrices", "matricesOut")
         self.newOutput("Float List", "Effector Strength", "effectorStrength", hide = True)
@@ -56,15 +61,20 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
             layout.prop(self, "trackAxis", expand = True)
             layout.prop(self, "guideAxis", expand = True)
             if self.trackAxis[-1:] == self.guideAxis[-1:]:
-                layout.label(text = "Must be different", icon = "ERROR")        
+                layout.label(text = "Must be different", icon = "ERROR")
 
+    def drawAdvanced(self, layout):
+        layout.prop(self, "considerRotationsIn") 
+        layout.prop(self, "directionAxis", expand = True)
+            
     def updateSocketVisibility(self):
-        self.inputs[2].hide = not self.useOffset
-        self.inputs[3].hide = not self.useOffset
+        condition = self.useOffset or self.useScale
+        self.inputs[2].hide = not condition
+        self.inputs[3].hide = not condition
         self.inputs[4].hide = not self.useOffset
         self.inputs[5].hide = not self.useScale
 
-    def execute(self, matrices, targets, offset, width, offsetStrength, scaleIn, falloff):
+    def execute(self, matrices, targets, distanceIn, width, offsetStrength, scaleIn, guideIn, falloff):
         if not self.useTargetList: targets = [targets]
         count = len(matrices)
         if len(targets) == 0 or len(matrices) == 0:
@@ -78,10 +88,13 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                 vectors = extractMatrixTranslations(matrices)
                 rotations = extractMatrixRotations(matrices)
                 scales = extractMatrixScales(matrices)
+                Directions = eulersToDirections(rotations, self.directionAxis)
                 vectorArray = vectors.asNumpyArray().reshape(count, 3)
                 scalesArray = scales.asNumpyArray().reshape(count, 3)
                 if self.useDirection:
                     targetDirections = np.zeros((count, 3), dtype='float32')
+                    if self.considerRotationsIn:
+                        targetDirections = Directions.asNumpyArray().reshape(count, 3)
                 targetOffsets = vectors.asNumpyArray().reshape(count, 3)
                 falloffEvaluator = self.getFalloffEvaluator(falloff)
                 influences = DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
@@ -92,7 +105,7 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     scale = target.to_scale().x
                     if scale < 0:
                         flag = -1
-                    size = abs(scale) + offset
+                    size = abs(scale) + distanceIn
                     newPositions, distances = self.targetSphericalDistance(vectorArray, center, size-1, width, flag)
                     if self.useOffset:
                         targetOffsets += newPositions * offsetStrength
@@ -101,26 +114,27 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     if self.useScale:
                         scalesArray[:,0] += scaleIn.x * distances
                         scalesArray[:,1] += scaleIn.y * distances
-                        scalesArray[:,2] += scaleIn.z * distances    
+                        scalesArray[:,2] += scaleIn.z * distances
                     if i == 0:
                         strength = distances
                     else:    
                         strength += distances
-                newVectors = vectors.copy()
-                newRotations = rotations.copy()
-                newScales = scales.copy()
+                newVectors = vectors
+                newRotations = rotations
+                newScales = scales
                 if self.useOffset:      
-                    newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten())
+                    newVectors = vector_lerp(vectors, Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten()), influences)
                 if self.useDirection:
-                    newRotations = directionsToMatrices(Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten()), Vector((0,0,1)), 
-                                    self.trackAxis, self.guideAxis).toEulers(isNormalized = True)  
+                    newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten())
+                    newDirections = vector_lerp(Directions, newDirections, influences)
+                    newDirections.normalize()
+                    newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers(isNormalized = True)
                 if self.useScale:
-                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten())
+                    newScales = vector_lerp(scales, Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten()), influences)
                 _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
-                _r = VirtualEulerList.create(newRotations, (0, 0, 0))    
+                _r = VirtualEulerList.create(newRotations, (0, 0, 0))
                 _s = VirtualVector3DList.create(newScales, (1, 1, 1))
-                newMatrices = composeMatrices(count, _v, _r, _s)
-                return matrix_lerp(matrices, newMatrices, influences), DoubleList.fromNumpyArray(np.clip(strength, 0, 1).astype('double')), influences
+                return composeMatrices(count, _v, _r, _s), DoubleList.fromNumpyArray(np.clip(strength, 0, 1).astype('double')), influences 
 
     def targetRotation(self, vectors, target, flag):
         temp = vectors - np.asarray(target)
