@@ -2,13 +2,13 @@ import bpy
 import numpy as np
 from bpy.props import *
 from mathutils import Matrix
-from ... algorithms.rotations import directionsToMatrices
 from .. matrix.c_utils import extractMatrixTranslations
+from ... algorithms.rotations import directionsToMatrices
 from ... base_types import AnimationNode, VectorizedSocket
 from .. number . c_utils import range_DoubleList_StartStop
 from ... events import executionCodeChanged, propertyChanged
 from .. spline . spline_evaluation_base import SplineEvaluationBase
-from..bluefox_nodes.c_utils import matrix_lerp, vector_lerp, inheritanceCurveVector, inheritanceCurveMatrix
+from .. bluefox_nodes.c_utils import matrix_lerp, vector_lerp, inheritanceCurveVector, inheritanceCurveMatrix
 from ... data_structures import DoubleList, Matrix4x4List, Vector3DList, VirtualMatrix4x4List, VirtualVector3DList, FloatList
 
 inheritancemodeItems = [
@@ -42,7 +42,7 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     trackAxis: EnumProperty(items = trackAxisItems, update = propertyChanged, default = "Z")
     guideAxis: EnumProperty(items = guideAxisItems, update = propertyChanged, default = "X")
 
-    mode : EnumProperty(name = "Type", default = "VECTORS",
+    mode : EnumProperty(name = "Type", default = "MATRICES",
         items = inheritancemodeItems, update = AnimationNode.refresh)
 
     selectMode : EnumProperty(name = "Mode", default = "LINEAR",
@@ -162,13 +162,13 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
             return Matrix4x4List(), DoubleList()
         if len(m1) != len(m2):    
             m1, m2 = self.matchLength(m1, m2, 1)    
-        pathPoints, pathEulers = self.evalSpline(path, samples, 1)      
+        pathPoints, splineRotations = self.evalSpline(path, samples, 1)      
         falloffEvaluator = self.getFalloffEvaluator(falloff)
         if step==0:
             influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)))
         else:
             influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)), step))
-        result = inheritanceCurveMatrix(m1, m2, pathPoints, pathEulers, randomness, influences, self.align)
+        result = inheritanceCurveMatrix(m1, m2, pathPoints, splineRotations, randomness, influences, self.align)
         if self.useM1List == 0 and self.useM2List == 0:
             return result[0], influences[0]
         else:
@@ -210,6 +210,6 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
             tangents = spline.sampleTangents(parameters, False, 'RESOLUTION')
             normals = spline.sampleNormals(parameters, False, 'RESOLUTION')
             rotationMatrices = directionsToMatrices(tangents, normals, self.trackAxis, self.guideAxis)
-            return locations, rotationMatrices.toEulers(isNormalized = True)
+            return locations, rotationMatrices
         else:
-            return locations    
+            return locations

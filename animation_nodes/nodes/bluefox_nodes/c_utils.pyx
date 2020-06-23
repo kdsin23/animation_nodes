@@ -10,7 +10,7 @@ from ... algorithms.random import uniformRandomDoubleWithTwoSeeds, getRandom3DVe
 from ... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated 
 from ... data_structures cimport (
     DoubleList, FloatList,VirtualMatrix4x4List,
-    Vector3DList, EulerList, Matrix4x4List,
+    Vector3DList, EulerList, Matrix4x4List, QuaternionList,
     VirtualVector3DList, VirtualEulerList, VirtualFloatList, VirtualDoubleList,
     Action, ActionEvaluator, PathIndexActionChannel,
     BoundedAction, BoundedActionEvaluator,Color,
@@ -26,18 +26,9 @@ from ... math cimport (
     setRotationXMatrix, setRotationYMatrix, setRotationZMatrix,
     setRotationMatrix, setTranslationMatrix, setIdentityMatrix,
     setScaleMatrix,setMatrixTranslation,transposeMatrix_Inplace
-)   
+)
 
-def matrixlerp(Matrix4x4List matricesA, Matrix4x4List matricesB, DoubleList influences):
-    cdef Py_ssize_t count = max(matricesA.getLength(),matricesB.getLength())
-    cdef Py_ssize_t i
-    cdef Matrix4x4List out_matrixlist = Matrix4x4List(length = count)
-    cdef VirtualMatrix4x4List matrixlistA = VirtualMatrix4x4List.create(matricesA, Matrix.Identity(4))
-    cdef VirtualMatrix4x4List matrixlistB = VirtualMatrix4x4List.create(matricesB, Matrix.Identity(4))
-    cdef VirtualDoubleList influencess = VirtualDoubleList.create(influences, 0)
-    for i in range(count):
-        out_matrixlist[i]= matrixlistA[i] . lerp( matrixlistB[i], influencess[i] )  
-    return out_matrixlist
+####################################    Color Functions    ##############################################
  
 def getTextureColors_moded(texture, Vector3DList locations, float multiplier):
     cdef long amount = locations.length
@@ -64,49 +55,6 @@ def getTexturegreys(texture, Vector3DList locations, float multiplier):
         r, g, b, a = texture.evaluate(locations[i])
         greys.data[i] = ((r+g+b)/3)*multiplier
     return greys 
-      
-def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
-    cdef Vector3DList tA = extractMatrixTranslations(mA)
-    cdef Vector3DList tB = extractMatrixTranslations(mB)
-    cdef EulerList rA = extractMatrixRotations(mA)
-    cdef EulerList rB = extractMatrixRotations(mB)
-    cdef Vector3DList sA = extractMatrixScales(mA)
-    cdef Vector3DList sB = extractMatrixScales(mB)
-    cdef int count = max(mA.getLength(), mB.getLength())
-    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(tA, (0, 0, 0))
-    cdef VirtualEulerList rotations_out = VirtualEulerList.create(rA, (0, 0, 0))
-    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(sA, (1, 1, 1))
-    for i in range(count):
-        translations_out.get(i).x = tA.data[i].x * (1-influences.data[i]) + tB.data[i].x * influences.data[i]
-        translations_out.get(i).y = tA.data[i].y * (1-influences.data[i]) + tB.data[i].y * influences.data[i]
-        translations_out.get(i).z = tA.data[i].z * (1-influences.data[i]) + tB.data[i].z * influences.data[i]
-        rotations_out.get(i).x = rA.data[i].x * (1-influences.data[i]) + rB.data[i].x * influences.data[i]
-        rotations_out.get(i).y = rA.data[i].y * (1-influences.data[i]) + rB.data[i].y * influences.data[i]
-        rotations_out.get(i).z = rA.data[i].z * (1-influences.data[i]) + rB.data[i].z * influences.data[i]
-        scales_out.get(i).x = sA.data[i].x * (1-influences.data[i]) + sB.data[i].x * influences.data[i]
-        scales_out.get(i).y = sA.data[i].y * (1-influences.data[i]) + sB.data[i].y * influences.data[i]
-        scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]
-    return composeMatrices(count, translations_out, rotations_out, scales_out)
-
-def vector_lerp(Vector3DList vectorsA, Vector3DList vectorsB, DoubleList influences):
-    cdef Py_ssize_t count = max(vectorsA.getLength(), vectorsB.getLength())
-    cdef Py_ssize_t i
-    cdef Vector3DList out_vectorlist = Vector3DList(length = count)
-    for i in range(count):
-        out_vectorlist.data[i].x = vectorsA.data[i].x * (1-influences.data[i]) + vectorsB.data[i].x * influences.data[i]
-        out_vectorlist.data[i].y = vectorsA.data[i].y * (1-influences.data[i]) + vectorsB.data[i].y * influences.data[i]
-        out_vectorlist.data[i].z = vectorsA.data[i].z * (1-influences.data[i]) + vectorsB.data[i].z * influences.data[i]
-    return out_vectorlist
-
-def euler_lerp(EulerList eulersA, EulerList eulersB, DoubleList influences):
-    cdef Py_ssize_t count = max(eulersA.getLength(), eulersB.getLength())
-    cdef Py_ssize_t i
-    cdef EulerList out_eulerlist = EulerList(length = count)
-    for i in range(count):
-        out_eulerlist.data[i].x = eulersA.data[i].x * (1-influences.data[i]) + eulersB.data[i].x * influences.data[i]
-        out_eulerlist.data[i].y = eulersA.data[i].y * (1-influences.data[i]) + eulersB.data[i].y * influences.data[i]
-        out_eulerlist.data[i].z = eulersA.data[i].z * (1-influences.data[i]) + eulersB.data[i].z * influences.data[i]
-    return out_eulerlist
 
 def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint normalized):
     cdef Py_ssize_t i
@@ -118,6 +66,83 @@ def generateRandomColors(Py_ssize_t count, Py_ssize_t seed, float scale, bint no
         b = absNumber(randomVectors.data[i].z)
         colors.data[i] = Color(r, g, b, 1)
     return colors
+
+####################################    Rotation Functions    ##############################################
+
+def quaternionsToEulers(QuaternionList q):
+    cdef Py_ssize_t count = len(q)
+    cdef Matrix4x4List m = Matrix4x4List(length = count)
+    cdef double sqw, sqx, sqy, sqz, invs, tmp1, tmp2
+    for i in range(count):
+        sqw = q.data[i].w * q.data[i].w
+        sqx = q.data[i].x * q.data[i].x
+        sqy = q.data[i].y * q.data[i].y
+        sqz = q.data[i].z * q.data[i].z
+        invs = 1 / (sqx + sqy + sqz + sqw)
+
+        m.data[i].a11 = ( sqx - sqy - sqz + sqw)*invs
+        m.data[i].a22 = (-sqx + sqy - sqz + sqw)*invs
+        m.data[i].a33 = (-sqx - sqy + sqz + sqw)*invs
+
+        tmp1 = q.data[i].x * q.data[i].y
+        tmp2 = q.data[i].z * q.data[i].w
+        m.data[i].a21 = 2.0 * (tmp1 + tmp2)*invs
+        m.data[i].a12 = 2.0 * (tmp1 - tmp2)*invs
+
+        tmp1 = q.data[i].x * q.data[i].z
+        tmp2 = q.data[i].y * q.data[i].w
+        m.data[i].a31 = 2.0 * (tmp1 - tmp2)*invs
+        m.data[i].a13 = 2.0 * (tmp1 + tmp2)*invs
+
+        tmp1 = q.data[i].y * q.data[i].z
+        tmp2 = q.data[i].x * q.data[i].w
+        m.data[i].a32 = 2.0 * (tmp1 + tmp2)*invs
+        m.data[i].a23 = 2.0 * (tmp1 - tmp2)*invs
+
+    return Matrix4x4List.toEulers(m)    
+
+####################################    Lerp Functions    ##############################################
+
+def euler_lerp(EulerList eA, EulerList eB, DoubleList influences):
+    cdef Py_ssize_t count = max(eA.getLength(), eB.getLength())
+    cdef Py_ssize_t i
+    cdef EulerList out_eulerlist = EulerList(length = count)
+    for i in range(count):
+        out_eulerlist.data[i].x = eA.data[i].x * (1-influences.data[i]) + eB.data[i].x * influences.data[i]
+        out_eulerlist.data[i].y = eA.data[i].y * (1-influences.data[i]) + eB.data[i].y * influences.data[i]
+        out_eulerlist.data[i].z = eA.data[i].z * (1-influences.data[i]) + eB.data[i].z * influences.data[i]
+    return out_eulerlist 
+
+def quaternion_lerp(QuaternionList qA, QuaternionList qB, DoubleList influences):
+    cdef Py_ssize_t count = len(qA)
+    cdef QuaternionList out_quaternionList = QuaternionList(length = count)
+    for i in range(count):
+        out_quaternionList.data[i].w = qA.data[i].w * (1-influences.data[i]) + qB.data[i].w * influences.data[i]
+        out_quaternionList.data[i].x = qA.data[i].x * (1-influences.data[i]) + qB.data[i].x * influences.data[i]
+        out_quaternionList.data[i].y = qA.data[i].y * (1-influences.data[i]) + qB.data[i].y * influences.data[i]
+        out_quaternionList.data[i].z = qA.data[i].z * (1-influences.data[i]) + qB.data[i].z * influences.data[i]
+    return out_quaternionList          
+
+def vector_lerp(Vector3DList vA, Vector3DList vB, DoubleList influences):
+    cdef Py_ssize_t count = max(vA.getLength(), vB.getLength())
+    cdef Py_ssize_t i
+    cdef Vector3DList out_vectorlist = Vector3DList(length = count)
+    for i in range(count):
+        out_vectorlist.data[i].x = vA.data[i].x * (1-influences.data[i]) + vB.data[i].x * influences.data[i]
+        out_vectorlist.data[i].y = vA.data[i].y * (1-influences.data[i]) + vB.data[i].y * influences.data[i]
+        out_vectorlist.data[i].z = vA.data[i].z * (1-influences.data[i]) + vB.data[i].z * influences.data[i]
+    return out_vectorlist
+
+def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
+    cdef Vector3DList t = vector_lerp(extractMatrixTranslations(mA), extractMatrixTranslations(mB), influences)    
+    cdef EulerList r = quaternionsToEulers(quaternion_lerp(Matrix4x4List.toQuaternions(mA), Matrix4x4List.toQuaternions(mB), influences))
+    cdef Vector3DList s = vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), influences)
+    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(t, (0, 0, 0))
+    cdef VirtualEulerList rotations_out = VirtualEulerList.create(r, (0, 0, 0))
+    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(s, (1, 1, 1))
+    return composeMatrices(len(mA), translations_out, rotations_out, scales_out)    
+
+####################################    Effector Functions    ##############################################
 
 def stepEffector(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DList s, DoubleList influences, 
                         Interpolation interpolation, double minValue, double maxValue, bint clamp):
@@ -183,69 +208,46 @@ def inheritanceCurveVector(Vector3DList vA, Vector3DList vB, Vector3DList spline
         out_vectorlist.data[i].z = innerVectorList.data[bIndex].z * (1-influence) + innerVectorList.data[aIndex].z * influence
     return out_vectorlist
 
-def inheritanceCurveEuler(EulerList eA, EulerList eB, EulerList splineEulers, DoubleList influences):
+def inheritanceCurveEuler(QuaternionList qA, QuaternionList qB, QuaternionList splineRotations, DoubleList influences):
     cdef Py_ssize_t i, j, bIndex, aIndex
-    cdef Py_ssize_t count = eA.getLength()
-    cdef Py_ssize_t splineEulerCount = splineEulers.getLength()
+    cdef Py_ssize_t count = qA.getLength()
+    cdef Py_ssize_t splineEulerCount = splineRotations.getLength()
     cdef Py_ssize_t innerLength = splineEulerCount + 2
     cdef double f, influence
-    cdef EulerList outEulerlist = EulerList(length = count)
-    cdef EulerList innerEulerList = EulerList(length = innerLength)
+    cdef QuaternionList outEulerlist = QuaternionList(length = count)
+    cdef QuaternionList innerList = QuaternionList(length = innerLength)
     for i in range(count):
-        innerEulerList.data[0] = eA.data[i]
+        innerList.data[0] = qA.data[i]
         for j in range(splineEulerCount):
-            innerEulerList.data[j+1].x = splineEulers.data[j].x
-            innerEulerList.data[j+1].y = splineEulers.data[j].y
-            innerEulerList.data[j+1].z = splineEulers.data[j].z
-        innerEulerList.data[innerLength - 1] = eB.data[i]
+            innerList.data[j+1].w = splineRotations.data[j].w
+            innerList.data[j+1].x = splineRotations.data[j].x
+            innerList.data[j+1].y = splineRotations.data[j].y
+            innerList.data[j+1].z = splineRotations.data[j].z
+        innerList.data[innerLength - 1] = qB.data[i]
         f = influences.data[i] * (innerLength - 1)
         influence = f % 1 
         bIndex = int(max(min(floor(f), innerLength - 1), 0))
         aIndex = int(max(min(ceil(f), innerLength - 1), 0))
-        outEulerlist.data[i].x = innerEulerList.data[bIndex].x * (1-influence) + innerEulerList.data[aIndex].x * influence
-        outEulerlist.data[i].y = innerEulerList.data[bIndex].y * (1-influence) + innerEulerList.data[aIndex].y * influence
-        outEulerlist.data[i].z = innerEulerList.data[bIndex].z * (1-influence) + innerEulerList.data[aIndex].z * influence
-    return outEulerlist    
+        outEulerlist.data[i].w = innerList.data[bIndex].w * (1-influence) + innerList.data[aIndex].w * influence
+        outEulerlist.data[i].x = innerList.data[bIndex].x * (1-influence) + innerList.data[aIndex].x * influence
+        outEulerlist.data[i].y = innerList.data[bIndex].y * (1-influence) + innerList.data[aIndex].y * influence
+        outEulerlist.data[i].z = innerList.data[bIndex].z * (1-influence) + innerList.data[aIndex].z * influence
+    return quaternionsToEulers(outEulerlist)
 
-def inheritanceCurveMatrix(Matrix4x4List mA, Matrix4x4List mB, Vector3DList splinePoints, EulerList splineEulers, float randomScale, DoubleList influences, bint align):
+def inheritanceCurveMatrix(Matrix4x4List mA, Matrix4x4List mB, Vector3DList splinePoints, Matrix4x4List splineRotations, float randomScale, DoubleList influences, bint align):
     cdef Vector3DList tA = extractMatrixTranslations(mA)
     cdef Vector3DList tB = extractMatrixTranslations(mB)
-    cdef EulerList rA = extractMatrixRotations(mA)
-    cdef EulerList rB = extractMatrixRotations(mB)
-    cdef Vector3DList sA = extractMatrixScales(mA)
-    cdef Vector3DList sB = extractMatrixScales(mB)
-    cdef int count = max(mA.getLength(), mB.getLength())
-    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(tA, (0, 0, 0))
-    cdef VirtualEulerList rotations_out = VirtualEulerList.create(rA, (0, 0, 0))
-    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(sA, (1, 1, 1))
-    cdef Vector3DList translationCurve = inheritanceCurveVector(tA, tB, splinePoints, randomScale, influences)
-    cdef EulerList rotationCurve = EulerList()
+    cdef Vector3DList t = inheritanceCurveVector(tA, tB, splinePoints, randomScale, influences)
+    cdef EulerList r = quaternionsToEulers(quaternion_lerp(Matrix4x4List.toQuaternions(mA), Matrix4x4List.toQuaternions(mB), influences))
     if align:
-        rotationCurve = inheritanceCurveEuler(rA, rB, splineEulers, influences)
-    for i in range(count):
-        translations_out.get(i).x = translationCurve.data[i].x
-        translations_out.get(i).y = translationCurve.data[i].y
-        translations_out.get(i).z = translationCurve.data[i].z
-        if align:
-            rotations_out.get(i).x = rotationCurve.data[i].x
-            rotations_out.get(i).y = rotationCurve.data[i].y
-            rotations_out.get(i).z = rotationCurve.data[i].z
-        else:
-            rotations_out.get(i).x = rA.data[i].x * (1-influences.data[i]) + rB.data[i].x * influences.data[i]
-            rotations_out.get(i).y = rA.data[i].y * (1-influences.data[i]) + rB.data[i].y * influences.data[i]
-            rotations_out.get(i).z = rA.data[i].z * (1-influences.data[i]) + rB.data[i].z * influences.data[i]    
-        scales_out.get(i).x = sA.data[i].x * (1-influences.data[i]) + sB.data[i].x * influences.data[i]
-        scales_out.get(i).y = sA.data[i].y * (1-influences.data[i]) + sB.data[i].y * influences.data[i]
-        scales_out.get(i).z = sA.data[i].z * (1-influences.data[i]) + sB.data[i].z * influences.data[i]      
-    return composeMatrices(count, translations_out, rotations_out, scales_out)
+        r = inheritanceCurveEuler(Matrix4x4List.toQuaternions(mA), Matrix4x4List.toQuaternions(mB), Matrix4x4List.toQuaternions(splineRotations), influences)
+    cdef Vector3DList s = vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), influences)    
+    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(t, (0, 0, 0)) 
+    cdef VirtualEulerList rotations_out = VirtualEulerList.create(r, (0, 0, 0))   
+    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(s, (1, 1, 1))    
+    return composeMatrices(len(mA), translations_out, rotations_out, scales_out)
 
-cdef Vector3DList vectorListADD(Vector3DList a, Vector3DList b):
-    cdef Py_ssize_t i
-    for i in range(a.getLength()):
-        a.data[i].x += b.data[i].x
-        a.data[i].y += b.data[i].y
-        a.data[i].z += b.data[i].z
-    return a 
+####################################    Curl Noise Functions    ##############################################
 
 #Curl reference: https://github.com/cabbibo/glsl-curl-noise
 @cython.cdivision(True)
@@ -346,4 +348,12 @@ def EulerIntegrateCurl(Vector3DList vectors, str noiseType, str fractalType, str
         return fullResult
     else:
         return result
+
+cdef Vector3DList vectorListADD(Vector3DList a, Vector3DList b):
+    cdef Py_ssize_t i
+    for i in range(a.getLength()):
+        a.data[i].x += b.data[i].x
+        a.data[i].y += b.data[i].y
+        a.data[i].z += b.data[i].z
+    return a         
                
