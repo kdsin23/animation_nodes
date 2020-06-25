@@ -5,6 +5,7 @@ from .. matrix.c_utils import*
 from .. bluefox_nodes.c_utils import vector_lerp
 from ... base_types import AnimationNode, VectorizedSocket
 from ... events import propertyChanged, executionCodeChanged
+from .. falloff.point_distance_falloff import PointDistanceFalloff
 from ... algorithms.rotations import directionsToMatrices, eulersToDirections
 from ... data_structures import Vector3DList, VirtualVector3DList, VirtualEulerList, Matrix4x4List, DoubleList
 
@@ -89,7 +90,6 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                 rotations = extractMatrixRotations(matrices)
                 scales = extractMatrixScales(matrices)
                 Directions = eulersToDirections(rotations, self.directionAxis)
-                vectorArray = vectors.asNumpyArray().reshape(count, 3)
                 scalesArray = scales.asNumpyArray().reshape(count, 3)
                 if self.useDirection:
                     targetDirections = np.zeros((count, 3), dtype='float32')
@@ -107,7 +107,7 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     if scale < 0:
                         flag = -1
                     size = abs(scale) + distanceIn
-                    newPositions, distances = self.targetSphericalDistance(vectorArray, center, size-1, width, flag)
+                    newPositions, distances = self.targetSphericalDistance(vectors, center, size-1, width, flag)
                     if self.useOffset:
                         targetOffsets[:,0] += newPositions[:,0] * offsetStrength * influencesArray
                         targetOffsets[:,1] += newPositions[:,1] * offsetStrength * influencesArray
@@ -131,7 +131,7 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                     newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten())
                     newDirections = vector_lerp(Directions, newDirections, influences)
                     newDirections.normalize()
-                    newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers(isNormalized = True)
+                    newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers()
                 if self.useScale:
                     newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten())
                 _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
@@ -147,30 +147,16 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
         return temp / (reshapedLength * reshapedLength) * flag
 
     def targetSphericalDistance(self, vectors, target, size, width, flag):
-        if width < 0:
-            size += width
-            width = -width
-        minDistance = size
-        maxDistance = size + width
-        if minDistance == maxDistance:
-            minDistance -= 0.00001
-        factor = 1 / (maxDistance - minDistance)
-        distance = self.distanceVectors(target, vectors)
-        distance[distance <= minDistance] = 1
-        distance[distance <= maxDistance] = 1 - (distance[distance <= maxDistance] - minDistance) * factor
-        distance[distance > maxDistance] = 0
-        distance = np.clip(distance,-1,1)
-        temp = (vectors - np.asarray(target)) * flag
-        temp[:,0] *= distance
-        temp[:,1] *= distance
-        temp[:,2] *= distance
-        return temp, distance
-
-    def distanceVectors(self, a, b):
-        diff1 = a.x - b[:,0]
-        diff2 = a.y - b[:,1]
-        diff3 = a.z - b[:,2]
-        return np.sqrt(diff1 * diff1 + diff2 * diff2 + diff3 * diff3)
+        pointfalloff = PointDistanceFalloff(target, size-1, width)
+        falloffEvaluator = self.getFalloffEvaluator(pointfalloff)
+        distances = falloffEvaluator.evaluateList(vectors)
+        distancesArray = np.clip(distances.asNumpyArray(), 0, 1)
+        vectorArray = vectors.asNumpyArray().reshape(len(vectors), 3)
+        temp = (vectorArray - np.asarray(target)) * flag
+        temp[:,0] *= distancesArray
+        temp[:,1] *= distancesArray
+        temp[:,2] *= distancesArray
+        return temp, distancesArray
 
     def getFalloffEvaluator(self, falloff):
         try: return falloff.getEvaluator("LOCATION")
