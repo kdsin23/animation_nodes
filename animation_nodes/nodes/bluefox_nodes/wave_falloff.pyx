@@ -1,6 +1,7 @@
 import bpy
 cimport cython
 from bpy.props import *
+from libc.math cimport M_PI
 from ... math cimport abs as absNumber
 from ... base_types import AnimationNode
 from ... data_structures cimport BaseFalloff
@@ -75,7 +76,7 @@ cdef class WaveFalloff(BaseFalloff):
         cdef Py_ssize_t i
         cdef float value                                   
         for i in range(amount):
-            value = i/amount
+            value = i/(amount - 1) * 2 * M_PI
             if self.clamp:
                 target[i] = max(min(wave(self, <Vector3*>values + i, value), 1), 0)
             else:
@@ -88,8 +89,6 @@ cdef inline float wave(WaveFalloff self, Vector3 *v, float i):
     frequency = self.frequency
     if self.isRipple:
         i = distanceVec3(&self.origin, v)
-    else:    
-        frequency *= 10
     if self.mode == "SINE":
         result = sin(i * frequency + offset)
     elif self.mode == "SQUARE":
@@ -99,11 +98,12 @@ cdef inline float wave(WaveFalloff self, Vector3 *v, float i):
         else:
             result = 1   
     elif self.mode == "TRIANGULAR": #needs improvement
-        offset = absNumber(offset)
+        offset = absNumber(offset + 1.36)
         temp = (i * frequency + offset) / 6 * 2
         result = 2 * (((i * frequency + offset) / 6 * 2) % 1) - 1
         if not temp % 2 > 1:
             result *= -1
     elif self.mode == "SAW": #needs improvement
+        offset = absNumber(offset + 2.85)
         result = 1 - ((i * frequency + offset) / 6 * 2) % 2  
     return result * self.amplitude
