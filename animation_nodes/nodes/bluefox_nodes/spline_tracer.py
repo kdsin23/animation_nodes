@@ -1,7 +1,8 @@
 import bpy
+import random
 from bpy.props import *
-from ... events import propertyChanged
 from ... base_types import AnimationNode, VectorizedSocket
+from ... events import propertyChanged, executionCodeChanged
 from ... data_structures import Vector3DList, PolySpline, BezierSpline
 
 tracerPointTypeItems = [
@@ -18,17 +19,24 @@ p = {}
 class SplineTracerNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_splinetracer"
     bl_label = "Spline Tracer"
-    bl_width_default = 160
-
+    bl_width_default = 150
+    
+    def checkedPropertiesChanged(self, context):
+        self.updateSocketVisibility()
+        executionCodeChanged()
+    
+    useRandomIdentifier: BoolProperty(update = checkedPropertiesChanged)
+    
     tracerpointType: EnumProperty(name = "Spline Type", default = "POLY",
         items = tracerPointTypeItems, update = AnimationNode.refresh)
 
     usevectorlist: VectorizedSocket.newProperty()
- 
+
     def create(self):
+        self.newInput("Scene", "Scene", "scene", hide = True)
         self.newInput(VectorizedSocket("Vector", "usevectorlist",
             ("Point ", "point"), ("Points", "points")))   
-        self.newInput("Integer", "Reset Frame", "resetframe", value = 1, hide = True)
+        self.newInput("Integer", "Reset Frame", "resetframe", value = 1)
         self.newInput("Integer", "Start Frame", "start", value = 1)
         self.newInput("Integer", "End Frame", "end", value = 250)
         self.newInput("Float", "Radius", "radius", value = 0.1, minValue = 0)
@@ -37,39 +45,60 @@ class SplineTracerNode(bpy.types.Node, AnimationNode):
             self.newInput("Float", "Smoothness", "smoothness", value = 0.33)
         self.newInput("Float", "Min Distance", "minDistance", value = 0.01, minValue = 0)     
         self.newInput("Boolean", "Append Condition", "appendCondition", value = 1, hide = True)
-        self.newInput("Boolean", "Use Custom Identifier", "useCustomIdentifier", value = 0, hide = True)
-        self.newInput("Text", "Custom Identifier", "customIdentifier", value = "abcd", hide = True)
+        self.newInput("Integer", "Identifier Seed", "identifierSeed")
 
         self.newOutput(VectorizedSocket("Spline", "usevectorlist",
             ("Spline", "spline"), ("Splines", "splines")))
 
+        self.updateSocketVisibility()
+
     def draw(self, layout):
         layout.prop(self, "tracerpointType", text = "")
 
-    def getExecutionFunctionName(self):
-        if self.usevectorlist and self.tracerpointType == "BEZIER_POINT":
-            return "execute_beziersplines"
-        elif self.usevectorlist and self.tracerpointType != "BEZIER_POINT":
-            return "execute_polysplines"    
-        elif self.usevectorlist == False and self.tracerpointType == "BEZIER_POINT":
-            return "execute_bezierspline"
-        elif self.usevectorlist == False and self.tracerpointType != "BEZIER_POINT":
-            return "execute_polyspline"    
+    def drawAdvanced(self, layout):
+        layout.label(text = "Experimental", icon = "ERROR")
+        layout.label(text = "Use this option only when using inside loop")
+        layout.prop(self, "useRandomIdentifier", text = "Use Random Identifier Seed")
 
-    def execute_polysplines(self, points, resetframe, start, end, radius, tilt, minDistance, appendCondition, useCustomIdentifier, customIdentifier):
-        T = bpy.context.scene.frame_current
+    def updateSocketVisibility(self):
+        if self.tracerpointType == "BEZIER_POINT":
+            self.inputs[10].hide = not self.useRandomIdentifier
+        else:
+            self.inputs[9].hide = not self.useRandomIdentifier    
+    
+    def edit(self):
+        inputSocket = self.inputs[0]
+        origin = inputSocket.dataOrigin
+        if origin is None: return
+        if origin.dataType != "Scene":
+            inputSocket.removeLinks()
+            inputSocket.hide = True    
+
+    def getExecutionFunctionName(self):
+        if self.tracerpointType == "BEZIER_POINT":
+            return "execute_beziersplines"
+        elif self.tracerpointType == "POLY":
+            return "execute_polysplines"          
+      
+    def execute_polysplines(self, scene, points, resetframe, start, end, radius, tilt, minDistance, appendCondition, identifierSeed):    
+        if not self.usevectorlist:
+            points = Vector3DList.fromValues([points])
+
+        T = self.getTime(scene, resetframe)
         vecDistance = minDistance
 
-        identifier = self.identifier + "poly"
-        if useCustomIdentifier:
-            identifier = customIdentifier + "poly"  
+        identifier = self.setIdentifier(identifierSeed)
+         
         if T == resetframe:
             p[identifier] = []
         p_object = p.get(identifier, [])
 
         splinelist = []
-        if T != resetframe and len(p_object) == 0: 
-            return splinelist
+        if T != resetframe and len(p_object) == 0:
+            if not self.usevectorlist:
+                return PolySpline()
+            else:     
+                return splinelist
            
         for i, point in enumerate(points):
             p_object.append(StoreSpline(i))
@@ -80,22 +109,30 @@ class SplineTracerNode(bpy.types.Node, AnimationNode):
             splinelist.append(p_object[i].polyspline)
         p[identifier] = p_object
 
-        return splinelist
+        if not self.usevectorlist:
+            return splinelist[0]
+        else:     
+            return splinelist
 
-    def execute_beziersplines(self, points, resetframe, start, end, radius, tilt, smoothness, minDistance, appendCondition, useCustomIdentifier, customIdentifier):
-        T = bpy.context.scene.frame_current
+    def execute_beziersplines(self, scene, points, resetframe, start, end, radius, tilt, smoothness, minDistance, appendCondition, identifierSeed):
+        if not self.usevectorlist:
+            points = Vector3DList.fromValues([points])
+
+        T = self.getTime(scene, resetframe)
         vecDistance = minDistance
 
-        identifier = self.identifier + "bezier"
-        if useCustomIdentifier:
-            identifier = customIdentifier + "bezier" 
+        identifier = self.setIdentifier(identifierSeed)
+        
         if T == resetframe:
             p[identifier] = []
         p_object = p.get(identifier, [])
 
         splinelist = []
         if T != resetframe and len(p_object) == 0: 
-            return splinelist
+            if not self.usevectorlist:
+                return BezierSpline()
+            else:     
+                return splinelist
 
         for i, point in enumerate(points):
             p_object.append(StoreSpline(i))
@@ -107,21 +144,26 @@ class SplineTracerNode(bpy.types.Node, AnimationNode):
             splinelist[i].smoothAllHandles(smoothness)
         p[identifier] = p_object
 
-        return splinelist    
+        if not self.usevectorlist:
+            return splinelist[0]
+        else:     
+            return splinelist
 
-    def execute_polyspline(self, point, resetframe, start, end, radius, tilt, minDistance, appendCondition, useCustomIdentifier, customIdentifier):
-        points = Vector3DList.fromValues([point])
-        splines = self.execute_polysplines(points, resetframe, start, end, radius, tilt, minDistance, appendCondition, useCustomIdentifier, customIdentifier)
-        if len(splines) == 0: 
-            return PolySpline()
-        else:    
-            return splines[0]
+    def getTime(self, scene, resetframe):
+        if scene is not None:
+            return scene.frame_current_final
+        else:
+            return resetframe 
 
-    def execute_bezierspline(self, point, resetframe, start, end, radius, tilt, smoothness, minDistance, appendCondition, useCustomIdentifier, customIdentifier):
-        points = Vector3DList.fromValues([point])
-        splines = self.execute_beziersplines(points, resetframe, start, end, radius, tilt, smoothness, minDistance, appendCondition, useCustomIdentifier, customIdentifier)
-        if len(splines) == 0: 
-            return BezierSpline()
-        else:    
-            return splines[0] 
-               
+    def setIdentifier(self, identifierSeed):
+        identifier = self.identifier + "splineTracer"
+        if self.useRandomIdentifier:
+            identifier += self.randomText(identifierSeed)
+        return identifier
+
+    def randomText(self, seed):
+        length = 6
+        characters = "abcdefghijklmnopqrstuvwxyz"
+        random.seed(seed + 12334)
+        return ''.join(random.choice(characters) for _ in range(length))
+         
