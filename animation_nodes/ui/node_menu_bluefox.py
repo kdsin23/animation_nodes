@@ -61,6 +61,7 @@ class ExtrafalloffsMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_RadialFalloff", "Radial Falloff")
         insertNode(layout, "an_Texturefalloff", "Texture falloff")
         insertNode(layout, "an_wavefalloff", "Wave falloff")
 
@@ -70,6 +71,7 @@ class MiscellaneousMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_CurlNoise", "Curl Noise")
         insertNode(layout, "an_Spherical_spiral", "Spherical spiral")
         insertNode(layout, "an_fibonacci", "Fibonacci")
         insertNode(layout, "an_lorenz", "Lorenz Attractor")                
@@ -80,8 +82,7 @@ class AlphaNodesMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        insertNode(layout, "an_RadialFalloff", "Radial Falloff")
-        insertNode(layout, "an_CurlNoise", "Curl Noise")
+        insertNode(layout, "an_RigidBodyTrigger", "Rigid Body Trigger")
         insertNode(layout, "an_MarchingCubes", "Marching Cubes")
         insertNode(layout, "an_MeshGrid", "Mesh Grid")
         insertNode(layout, "an_BMeshSmoothNode", "BMesh Smooth")
