@@ -44,7 +44,7 @@ class ArrayMathNode(bpy.types.Node, AnimationNode):
         if self.mode in ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MODULO", 
                             "POWER", "REMAINDER", "MAX", "MIN", "ARCTAN2"]:
             self.newInput("NDArray", "y", "y")
-        self.newOutput("NDArray", "Array", "array") 
+        self.newOutput("NDArray", "Array", "array")
 
     def draw(self, layout):
         layout.prop(self, "mode", text = "")
@@ -78,18 +78,28 @@ class ArrayMathNode(bpy.types.Node, AnimationNode):
 
     def executeTwoInputs(self, x, y):
         try:
-            if self.mode == "ADD" : return x + y
-            if self.mode == "SUBTRACT" : return x - y
-            if self.mode == "MULTIPLY" : return x * y
-            if self.mode == "DIVIDE" : return x / y
-            if self.mode == "MODULO" : return np.mod(x,y)
-            if self.mode == "POWER" : return np.power(x,y)
-            if self.mode == "REMAINDER" : return np.remainder(x,y)
-            if self.mode == "MAX" : return np.maximum(x,y)
-            if self.mode == "MIN" : return np.minimum(x,y)
-            if self.mode == "ARCTAN2" : return np.arctan2(x,y)
+            if self.is_broadcastable(x,y):
+                if self.mode == "ADD" : return x + y
+                if self.mode == "SUBTRACT" : return x - y
+                if self.mode == "MULTIPLY" : return x * y
+                if self.mode == "DIVIDE" : return x / y
+                if self.mode == "MODULO" : return np.mod(x,y)
+                if self.mode == "POWER" : return np.power(x,y)
+                if self.mode == "REMAINDER" : return np.remainder(x,y)
+                if self.mode == "MAX" : return np.maximum(x,y)
+                if self.mode == "MIN" : return np.minimum(x,y)
+                if self.mode == "ARCTAN2" : return np.arctan2(x,y)
+            else:
+                self.raiseErrorMessage("Invalid inputs")    
             
         except Exception as e:
             self.raiseErrorMessage(str(e))
             return np.array(0)
+
+    def is_broadcastable(self, *arrays):
+        try:
+            np.nditer(arrays)
+            return True
+        except ValueError:
+            return False
             
