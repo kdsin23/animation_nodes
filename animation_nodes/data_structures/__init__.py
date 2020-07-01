@@ -1,4 +1,5 @@
 def importDataStructures():
+    import numpy as NDArray
     from . color import Color
     from . struct import ANStruct
 
