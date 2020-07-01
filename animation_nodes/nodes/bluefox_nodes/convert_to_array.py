@@ -8,7 +8,9 @@ arraymodeItems = [
     ("VECTORS", "Vector List to Array", "", "", 1),
     ("COLORS", "Colors List to Array", "", "", 2),
     ("QUATERNIONS", "Quaternion List to Array", "", "", 3),
-    ("MATRICES", "Matrix List to Array", "", "", 4)
+    ("MATRICES", "Matrix List to Array", "", "", 4),
+    ("BOOLEANS", "Boolean List to Array", "", "", 5),
+    ("INTEGERS", "Integer List to Array", "", "", 6)
 ]
 
 class ConvertToArrayNode(bpy.types.Node, AnimationNode):
@@ -34,6 +36,10 @@ class ConvertToArrayNode(bpy.types.Node, AnimationNode):
             self.newInput("Quaternion List", "Quaternion list", "quaternionList")
         if self.mode == "MATRICES":
             self.newInput("Matrix List", "Matrix list", "matrixList")
+        if self.mode == "BOOLEANS":
+            self.newInput("Boolean List", "Boolean list", "booleanList")
+        if self.mode == "INTEGERS":
+            self.newInput("Integer List", "Integer list", "integerList")        
     
         self.newOutput("NDArray", "Array", "array")
         self.inputs[0].defaultDrawType = "PREFER_PROPERTY"  
@@ -51,3 +57,5 @@ class ConvertToArrayNode(bpy.types.Node, AnimationNode):
         elif self.mode == "COLORS":  yield "array = colorList.asNumpyArray().reshape(len(colorList), 4)"
         elif self.mode == "QUATERNIONS":  yield "array = quaternionList.asNumpyArray().reshape(len(quaternionList), 4)"
         elif self.mode == "MATRICES":  yield "array = matrixList.asNumpyArray().reshape(len(matrixList), 4, 4)"
+        elif self.mode == "BOOLEANS":  yield "array = NDArray.frombuffer(booleanList.asNumpyArray(), dtype=NDArray.bool_)"
+        elif self.mode == "INTEGERS":  yield "array = integerList.asNumpyArray()"
