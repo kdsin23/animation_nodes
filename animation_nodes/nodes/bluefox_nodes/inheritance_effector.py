@@ -24,17 +24,15 @@ selectModeItems = [
 trackAxisItems = [(axis, axis, "") for axis in ("X", "Y", "Z", "-X", "-Y", "-Z")]
 guideAxisItems  = [(axis, axis, "") for axis in ("X", "Y", "Z")]
 
-class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
+class InheritancEffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     bl_idname = "an_Inheritanceffector"
     bl_label = "Inheritance Effector"
     bl_width_default = 140
     errorHandlingType = "EXCEPTION"
 
-    useV1List: VectorizedSocket.newProperty()
-    useV2List: VectorizedSocket.newProperty()
-    useM1List: VectorizedSocket.newProperty()
-    useM2List: VectorizedSocket.newProperty()
-
+    useAList: VectorizedSocket.newProperty()
+    useBList: VectorizedSocket.newProperty()
+    
     align: BoolProperty(name = "Align", default = False,
         description = "Align to Spline",
         update = AnimationNode.refresh) 
@@ -42,31 +40,31 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     trackAxis: EnumProperty(items = trackAxisItems, update = propertyChanged, default = "Z")
     guideAxis: EnumProperty(items = guideAxisItems, update = propertyChanged, default = "X")
 
-    mode : EnumProperty(name = "Type", default = "MATRICES",
+    mode: EnumProperty(name = "Type", default = "MATRICES",
         items = inheritancemodeItems, update = AnimationNode.refresh)
 
-    selectMode : EnumProperty(name = "Mode", default = "LINEAR",
+    selectMode: EnumProperty(name = "Mode", default = "LINEAR",
         items = selectModeItems, update = AnimationNode.refresh)    
 
     def create(self):
         if self.mode == "VECTORS":
-            self.newInput(VectorizedSocket("Vector", "useV1List",
+            self.newInput(VectorizedSocket("Vector", "useAList",
             ("Vector A", "va"), ("Vectors A", "v1")))
-            self.newInput(VectorizedSocket("Vector", "useV2List",
+            self.newInput(VectorizedSocket("Vector", "useBList",
             ("Vector B", "vb"), ("Vectors B", "v2")))
-            self.newOutput(VectorizedSocket("Vector", ["useV1List", "useV2List"],
+            self.newOutput(VectorizedSocket("Vector", ["useAList", "useBList"],
             ("Vector out", "vec_out"), ("Vectors out", "vecs_out")))
-            self.newOutput(VectorizedSocket("Float", ["useV1List", "useV2List"],
+            self.newOutput(VectorizedSocket("Float", ["useAList", "useBList"],
             ("Value", "value"), ("Values", "values")))
                 
         elif self.mode == "MATRICES":
-            self.newInput(VectorizedSocket("Matrix", "useM1List",
+            self.newInput(VectorizedSocket("Matrix", "useAList",
             ("Matrix A", "ma"), ("Matrices A", "m1")))
-            self.newInput(VectorizedSocket("Matrix", "useM2List",
+            self.newInput(VectorizedSocket("Matrix", "useBList",
             ("Matrix B", "mb"), ("Matrices B", "m2")))
-            self.newOutput(VectorizedSocket("Matrix", ["useM1List", "useM2List"],
+            self.newOutput(VectorizedSocket("Matrix", ["useAList", "useBList"],
             ("Matrix out", "mat_out"), ("Matrices out", "mats_out")))
-            self.newOutput(VectorizedSocket("Float", ["useM1List", "useM2List"],
+            self.newOutput(VectorizedSocket("Float", ["useAList", "useBList"],
             ("Value", "value"), ("Values", "values")))
 
         if self.selectMode == "SPLINE":
@@ -91,88 +89,75 @@ class Inheritanceffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     def getExecutionFunctionName(self):
         if self.mode == "VECTORS":
             if self.selectMode == "LINEAR":
-                return "VectorLerpFunction"
+                return "vectorLerpInheritance"
             else:
                 return "vectorCurveInheritance"        
         else:
             if self.selectMode == "LINEAR":
-                return "MatrixLerpFunction"
+                return "matrixLerpInheritance"
             else:
                 return "matrixCurveInheritance"              
     
-    def MatrixLerpFunction(self, m1, m2, falloff, step ):
-        if not self.useM1List: m1 = Matrix4x4List.fromValues([m1])
-        if not self.useM2List: m2 = Matrix4x4List.fromValues([m2])
+    def matrixLerpInheritance(self, m1, m2, falloff, step):
+        if not self.useAList: m1 = Matrix4x4List.fromValues([m1])
+        if not self.useBList: m2 = Matrix4x4List.fromValues([m2])
         if len(m1) == 0 or len(m2) == 0:
             return Matrix4x4List(), DoubleList()    
         if len(m1) != len(m2):    
             m1, m2 = self.matchLength(m1, m2, 1)
-        falloffEvaluator = self.getFalloffEvaluator(falloff)    
-        if step==0:
-            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)))
-        else:
-            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)), step))
+        vectors = extractMatrixTranslations(m1)      
+        influences = self.getInfluences(falloff, vectors, step)
         result = matrix_lerp(m1,m2,influences)
-        if  self.useM1List == 0 and self.useM2List == 0:
-            return result[0], influences[0] 
-        else:
-            return result, influences       
+        return self.outputListManage(result, influences)       
 
-    def VectorLerpFunction( self, v1, v2, falloff, step ):
-        if not self.useV1List: v1 = Vector3DList.fromValue(v1)
-        if not self.useV2List: v2 = Vector3DList.fromValue(v2)
+    def vectorLerpInheritance(self, v1, v2, falloff, step):
+        if not self.useAList: v1 = Vector3DList.fromValue(v1)
+        if not self.useBList: v2 = Vector3DList.fromValue(v2)
         if len(v1) == 0 or len(v2) == 0:
             return Vector3DList(), DoubleList()
         if len(v1) != len(v2):    
-            v1, v2 = self.matchLength(v1, v2, 0)         
-        falloffEvaluator = self.getFalloffEvaluator(falloff)
-        if step==0:
-            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(v1))
-        else:
-            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(v1), step))
+            v1, v2 = self.matchLength(v1, v2, 0)
+        influences = self.getInfluences(falloff, v1, step)
         result = vector_lerp(v1, v2, influences)
-        if self.useV1List == 0 and self.useV2List == 0:
-            return result[0], influences[0]
-        else:
-            return result, influences 
+        return self.outputListManage(result, influences)
 
     def vectorCurveInheritance(self, v1, v2, path, samples, randomness, falloff, step):
-        if not self.useV1List: v1 = Vector3DList.fromValue(v1)
-        if not self.useV2List: v2 = Vector3DList.fromValue(v2)
+        if not self.useAList: v1 = Vector3DList.fromValue(v1)
+        if not self.useBList: v2 = Vector3DList.fromValue(v2)
         if len(v1) == 0 or len(v2) == 0 or len(path.points) == 0:
             return Vector3DList(), DoubleList()
         if len(v1) != len(v2):    
-            v1, v2 = self.matchLength(v1, v2, 0)    
-        pathPoints = self.evalSpline(path, samples, 0)      
-        falloffEvaluator = self.getFalloffEvaluator(falloff)
-        if step==0:
-            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(v1))
-        else:
-            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(v1), step))
+            v1, v2 = self.matchLength(v1, v2, 0)
+        pathPoints = self.evalSpline(path, samples, 0)           
+        influences = self.getInfluences(falloff, v1, step)
         result = inheritanceCurveVector(v1, v2, pathPoints, randomness, influences)
-        if self.useV1List == 0 and self.useV2List == 0:
-            return result[0], influences[0]
-        else:
-            return result, influences  
+        return self.outputListManage(result, influences)
 
     def matrixCurveInheritance(self, m1, m2, path, samples, randomness, falloff, step):
-        if not self.useM1List: m1 = Matrix4x4List.fromValues([m1])
-        if not self.useM2List: m2 = Matrix4x4List.fromValues([m2])
+        if not self.useAList: m1 = Matrix4x4List.fromValues([m1])
+        if not self.useBList: m2 = Matrix4x4List.fromValues([m2])
         if len(m1) == 0 or len(m2) == 0 or len(path.points) == 0:
             return Matrix4x4List(), DoubleList()
         if len(m1) != len(m2):    
-            m1, m2 = self.matchLength(m1, m2, 1)    
-        pathPoints, splineRotations = self.evalSpline(path, samples, 1)      
-        falloffEvaluator = self.getFalloffEvaluator(falloff)
-        if step==0:
-            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)))
-        else:
-            influences =  DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(extractMatrixTranslations(m1)), step))
+            m1, m2 = self.matchLength(m1, m2, 1)
+        pathPoints, splineRotations = self.evalSpline(path, samples, 1)
+        vectors = extractMatrixTranslations(m1)      
+        influences = self.getInfluences(falloff, vectors, step)
         result = inheritanceCurveMatrix(m1, m2, pathPoints, splineRotations, randomness, influences, self.align)
-        if self.useM1List == 0 and self.useM2List == 0:
+        return self.outputListManage(result, influences)
+
+    def getInfluences(self, falloff, vectors, step):
+        falloffEvaluator = self.getFalloffEvaluator(falloff)
+        if step == 0:
+            return DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
+        else:
+            return DoubleList.fromValues(self.snap_number(falloffEvaluator.evaluateList(vectors), step))        
+        
+    def outputListManage(self, result, influences):
+        if self.useAList == 0 and self.useBList == 0:
             return result[0], influences[0]
         else:
-            return result, influences                  
+            return result, influences
 
     def getFalloffEvaluator(self, falloff):
         try: return falloff.getEvaluator("LOCATION")
