@@ -1,12 +1,12 @@
 import bpy
 cimport cython
 from bpy.props import *
-from libc.math cimport M_PI
 from ... utils.clamp cimport clampLong
 from ... math cimport abs as absNumber
+from libc.math cimport M_PI, asin, atan
 from ... base_types import AnimationNode
 from ... data_structures cimport BaseFalloff
-from ... math cimport Vector3, setVector3, distanceVec3, sin
+from ... math cimport Vector3, setVector3, distanceVec3, sin, tan
 
 WaveTypeItems = [
     ("SINE", "Sine", "Sine wave", "", 0),
@@ -91,9 +91,8 @@ cdef class WaveFalloff(BaseFalloff):
             influence = 1
         else:
             influence = <float>(index - self.index) / self.indexDiff
-            influence *= 2 * M_PI
         if self.enableRipple:
-           influence = distanceVec3(<Vector3*>object, &self.origin) / 20 * M_PI
+           influence = distanceVec3(<Vector3*>object, &self.origin)/10
 
         if self.clamp:
             return max(min(wave(self, influence), 1), 0)
@@ -109,21 +108,17 @@ cdef inline float wave(WaveFalloff self, float i):
     frequency = self.frequency
 
     if self.waveType == "SINE":
-        result = sin(i * frequency + offset)
+        result = sin(2 * M_PI * i * frequency + offset)
     elif self.waveType == "SQUARE":
-        temp = sin(i * frequency + offset)
+        temp = sin(2 * M_PI * i * frequency + offset)
         if temp < 0:
             result = -1 
         else:
             result = 1   
-    elif self.waveType == "TRIANGULAR": #needs improvement
-        offset = absNumber(offset + 1.36)
-        temp = (i * frequency + offset) / 6 * 2
-        result = 2 * (((i * frequency + offset) / 6 * 2) % 1) - 1
-        if not temp % 2 > 1:
-            result *= -1
-    elif self.waveType == "SAW": #needs improvement
-        offset = absNumber(offset + 2.85)
-        result = 1 - ((i * frequency + offset) / 6 * 2) % 2 
-
-    return result * self.amplitude        
+    elif self.waveType == "TRIANGULAR":
+        temp = asin(sin((2 * M_PI * i * frequency) + offset)) # ranges b/w -pi/2 and pi/2
+        result = (temp / M_PI + 0.5) * 2 - 1 # make range -1 to 1
+    elif self.waveType == "SAW":
+        result = 2 / M_PI * atan(1 / tan(i * frequency * M_PI + offset))
+        
+    return result * self.amplitude
