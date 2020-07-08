@@ -2,7 +2,6 @@ import bpy
 cimport cython
 from bpy.props import *
 from ... utils.clamp cimport clampLong
-from ... math cimport abs as absNumber
 from libc.math cimport M_PI, asin, atan
 from ... base_types import AnimationNode
 from ... data_structures cimport BaseFalloff
@@ -33,7 +32,8 @@ class WaveFalloffNode(bpy.types.Node, AnimationNode):
         self.newInput("Float", "Frequency", "frequency", value = 1)
         self.newInput("Float", "Offset", "offset", value = 0)
         self.newInput("Float", "Amplitude", "amplitude", value = 1)
-        self.newInput("Boolean", "Clamp", "clamp", value = False)
+        self.newInput("Float", "Damping", "damping")
+        self.newInput("Boolean", "Clamp", "clamp", value = False, hide = True)
 
         self.newOutput("Falloff", "Falloff", "falloff")
 
@@ -49,28 +49,29 @@ class WaveFalloffNode(bpy.types.Node, AnimationNode):
         else:
             return "executeBasic"    
 
-    def executeBasic(self, index, amount, frequency, offset, amplitude, clamp):
-        return WaveFalloff((0,0,0), index, index + amount, frequency, offset, amplitude, self.waveType, self.enableRipple, clamp)
+    def executeBasic(self, index, amount, frequency, offset, amplitude, damping, clamp):
+        return WaveFalloff((0,0,0), index, index + amount, frequency, offset, amplitude, damping, self.waveType, self.enableRipple, clamp)
 
-    def executeRipple(self, origin, frequency, offset, amplitude, clamp):
-        return WaveFalloff(origin, 0, 0, frequency, offset, amplitude, self.waveType, self.enableRipple, clamp)
+    def executeRipple(self, origin, frequency, offset, amplitude, damping, clamp):
+        return WaveFalloff(origin, 0, 0, frequency, offset, amplitude, damping, self.waveType, self.enableRipple, clamp)
 
 cdef class WaveFalloff(BaseFalloff):
     cdef:
         long index, amount
         float indexDiff
-        float frequency, offset, amplitude
+        float frequency, offset, amplitude, damping
         str waveType
         bint enableRipple, clamp
         Vector3 origin
 
-    def __cinit__(self, origin, index, amount, frequency, offset, amplitude, waveType, enableRipple, clamp):
+    def __cinit__(self, origin, index, amount, frequency, offset, amplitude, damping, waveType, enableRipple, clamp):
         self.index = clampLong(index)
         self.amount = clampLong(amount)
         self.indexDiff = <float>(self.amount - self.index)
         self.frequency = frequency
         self.offset = offset
         self.amplitude = amplitude
+        self.damping = damping
         self.clamp = clamp
         self.enableRipple = enableRipple
         self.waveType = waveType
@@ -92,7 +93,7 @@ cdef class WaveFalloff(BaseFalloff):
         else:
             influence = <float>(index - self.index) / self.indexDiff
         if self.enableRipple:
-           influence = distanceVec3(<Vector3*>object, &self.origin)/10
+           influence = distanceVec3(<Vector3*>object, &self.origin)
 
         if self.clamp:
             return max(min(wave(self, influence), 1), 0)
@@ -106,6 +107,8 @@ cdef inline float wave(WaveFalloff self, float i):
 
     offset = self.offset * -1
     frequency = self.frequency
+    if self.enableRipple:
+        frequency /= 10
 
     if self.waveType == "SINE":
         result = sin(2 * M_PI * i * frequency + offset)
@@ -121,4 +124,4 @@ cdef inline float wave(WaveFalloff self, float i):
     elif self.waveType == "SAW":
         result = 2 / M_PI * atan(1 / tan(i * frequency * M_PI + offset))
         
-    return result * self.amplitude
+    return result * self.amplitude * 2.71827 ** -(self.damping * i)
