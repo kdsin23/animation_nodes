@@ -43,4 +43,3 @@ class ObjectMatrixInputNode(bpy.types.Node, AnimationNode):
         if "basis" in required:         yield "    basis = evaluatedObject.matrix_basis"
         if "local" in required:         yield "    local = evaluatedObject.matrix_local"
         if "parentInverse" in required: yield "    parentInverse = evaluatedObject.matrix_parent_inverse"
-        
