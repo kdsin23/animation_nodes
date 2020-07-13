@@ -14,7 +14,7 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
 
     def create(self):
         self.newInput("Generic", "MC Data","mcData")
-        self.newInput("Generic", "Field","field")
+        self.newInput("NDArray", "Field","field")
         self.newInput("Float", "ISO Value","isoValue", value = 0.3)
 
         self.newOutput("an_MeshSocket", "Mesh", "meshData")
@@ -26,17 +26,11 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
             else: 
                 samples = mcData[0]
                 b1n, b2n = mcData[1], mcData[2]
-                if not type(field) is np.ndarray:
-                    func_values = field.asNumpyArray()
-                else:
-                    func_values = field
-                func_values = func_values.reshape((samples, samples, samples))
-                vertices, faces = isosurface_np(func_values, isoValue)
+                vertices, faces = isosurface_np(field.reshape((samples, samples, samples)), isoValue)
                 vertexLocations = Vector3DList.fromValues((vertices / samples) * (b2n - b1n) + b1n)
                 polygonIndices = PolygonIndicesList.fromValues(faces)
                 edgeIndices = createValidEdgesList(polygons = polygonIndices)
                 return Mesh(vertexLocations, edgeIndices, polygonIndices, skipValidation = True)
         except (TypeError, ValueError):
             self.raiseErrorMessage("Wrong value or type")
-            return Mesh()       
-                   
+            return Mesh()

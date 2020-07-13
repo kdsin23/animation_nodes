@@ -3,7 +3,6 @@ import numpy as np
 from bpy.props import *
 from ... events import propertyChanged
 from ... base_types import AnimationNode
-from ... data_structures import Vector3DList
 
 class MeshGridNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_MeshGrid"
@@ -13,10 +12,10 @@ class MeshGridNode(bpy.types.Node, AnimationNode):
         self.newInput("Vector List", "Bounding Box","boundingBox")
         self.newInput("Integer", "Samples","samples", minValue = 0)
         
-        self.newOutput("Generic", "Grid", "grid")
-        self.newOutput("Generic", "Grid.X", "gridX", hide = True)
-        self.newOutput("Generic", "Grid.Y", "gridY", hide = True)
-        self.newOutput("Generic", "Grid.Z", "gridZ", hide = True)
+        self.newOutput("NDArray", "Grid", "grid")
+        self.newOutput("NDArray", "Grid.X", "gridX", hide = True)
+        self.newOutput("NDArray", "Grid.Y", "gridY", hide = True)
+        self.newOutput("NDArray", "Grid.Z", "gridZ", hide = True)
         self.newOutput("Generic", "MC Data", "mcData")
     
     def execute(self, boundingBox, samples):
