@@ -1,12 +1,14 @@
 import bpy
 from bpy.props import *
 from ... base_types import AnimationNode
-from ... data_structures import Vector3DList
-from .. bluefox_nodes.c_utils import stepEffector
-from .. number . c_utils import mapRange_DoubleList
-from .. matrix.c_utils import extractMatrixTranslations
+from ... algorithms.interpolations import Linear
+from .. falloff . mix_falloffs import MixFalloffs
+from .. bluefox_nodes.c_utils import offsetMatrices
+from .. falloff . custom_falloff import CustomFalloff
 from ... events import propertyChanged, executionCodeChanged
-from ... data_structures import Matrix4x4List, DoubleList, Vector3DList, EulerList
+from .. falloff . interpolate_falloff import InterpolateFalloff
+from ... data_structures import Matrix4x4List, DoubleList, Vector3DList, EulerList, FloatList
+from ... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated
 
 class StepEffectorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_StepEffector"
@@ -54,8 +56,7 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
         if matrices is None:
             return Matrix4x4List()   
         else:
-            falloffEvaluator = self.getFalloffEvaluator(falloff)
-            influences =  DoubleList.fromValues(falloffEvaluator.evaluateList(extractMatrixTranslations(matrices)))
+            falloff_strengths, effector_strengths = self.calculateStrengths(falloff, matrices, clamp, interpolation, minValue, maxValue)
             if not self.useLocation:
                 location = [0,0,0]
             if not self.useRotation:
@@ -65,10 +66,22 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
             v = Vector3DList.fromValue(location)
             e = EulerList.fromValue(rotation)
             s = Vector3DList.fromValue(scale)
-            newMatrices, effectorStrength =  stepEffector(matrices, v, e, s, influences, interpolation, minValue, maxValue, clamp)
-            return newMatrices, effectorStrength, influences      
+            newMatrices =  offsetMatrices(matrices, v, e, s, effector_strengths)
+            return newMatrices, effector_strengths, falloff_strengths
+
+    def calculateStrengths(self, falloff, matrices, clamp, interpolation, minValue, maxValue):
+        strengths = range_DoubleList_StartStop(len(matrices), 0.00, 1.00)
+        interpolatedStrengths = mapRange_DoubleList_Interpolated(strengths, interpolation, 0, 1, minValue, maxValue)
+        mixedFalloff = MixFalloffs([falloff, CustomFalloff(FloatList.fromValues(interpolatedStrengths), 0)], "MULTIPLY", default = 1)
+        if clamp:
+            mixedFalloff = InterpolateFalloff(mixedFalloff, Linear())
+        falloffEvaluator = self.getFalloffEvaluator(falloff)    
+        strengthEvaluator = self.getFalloffEvaluator(mixedFalloff)
+        falloff_strengths = DoubleList.fromValues(falloffEvaluator.evaluateList(matrices)) 
+        effector_strengths = DoubleList.fromValues(strengthEvaluator.evaluateList(matrices))
+        return falloff_strengths, effector_strengths
 
     def getFalloffEvaluator(self, falloff):
-        try: return falloff.getEvaluator("LOCATION")
-        except: self.raiseErrorMessage("This falloff cannot be evaluated for vectors")          
+        try: return falloff.getEvaluator("TRANSFORMATION_MATRIX")
+        except: self.raiseErrorMessage("This falloff cannot be evaluated for matrices")          
     
