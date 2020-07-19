@@ -219,7 +219,7 @@ def matrix_lerp_skew(Matrix4x4List matrix1, Matrix4x4List matrix2, DoubleList in
 
 ####################################    Effector Functions    ##############################################
 
-def offsetMatrices(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3DList s, DoubleList influences):
+def offsetMatrices(Matrix4x4List matrices, VirtualVector3DList v, VirtualEulerList e, VirtualVector3DList s, DoubleList influences):
     cdef Vector3DList tA = extractMatrixTranslations(matrices)
     cdef EulerList rA = extractMatrixRotations(matrices)
     cdef Vector3DList sA = extractMatrixScales(matrices)
@@ -229,15 +229,15 @@ def offsetMatrices(Matrix4x4List matrices, Vector3DList v, EulerList e, Vector3D
     cdef VirtualVector3DList scales_out = VirtualVector3DList.create(sA, (1, 1, 1))
 
     for i in range(count):
-        translations_out.get(i).x = tA.data[i].x + influences.data[i] * v.data[0].x
-        translations_out.get(i).y = tA.data[i].y + influences.data[i] * v.data[0].y
-        translations_out.get(i).z = tA.data[i].z + influences.data[i] * v.data[0].z
-        rotations_out.get(i).x = rA.data[i].x + influences.data[i] * e.data[0].x
-        rotations_out.get(i).y = rA.data[i].y + influences.data[i] * e.data[0].y
-        rotations_out.get(i).z = rA.data[i].z + influences.data[i] * e.data[0].z
-        scales_out.get(i).x = sA.data[i].x + influences.data[i] * s.data[0].x
-        scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.data[0].y
-        scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.data[0].z
+        translations_out.get(i).x = tA.data[i].x + influences.data[i] * v.get(i).x
+        translations_out.get(i).y = tA.data[i].y + influences.data[i] * v.get(i).y
+        translations_out.get(i).z = tA.data[i].z + influences.data[i] * v.get(i).z
+        rotations_out.get(i).x = rA.data[i].x + influences.data[i] * e.get(i).x
+        rotations_out.get(i).y = rA.data[i].y + influences.data[i] * e.get(i).y
+        rotations_out.get(i).z = rA.data[i].z + influences.data[i] * e.get(i).z
+        scales_out.get(i).x = sA.data[i].x + influences.data[i] * s.get(i).x
+        scales_out.get(i).y = sA.data[i].y + influences.data[i] * s.get(i).y
+        scales_out.get(i).z = sA.data[i].z + influences.data[i] * s.get(i).z
 
     return composeMatrices(count, translations_out, rotations_out, scales_out)
 
