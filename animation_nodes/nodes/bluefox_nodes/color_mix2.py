@@ -94,9 +94,9 @@ class Colormix2(bpy.types.Node, AnimationNode):
                 out = np.clip(out, 0.00, 1.00)
     
             if self.usecolorAList == 0 and self.usecolorBList == 0 and self.usefactorList == 0:
-                return ColorList.fromNumpyArray(out.astype('float32').flatten())[0]
+                return ColorList.fromNumpyArray(out.astype('float32').ravel())[0]
             else:
-                return ColorList.fromNumpyArray(out.astype('float32').flatten())
+                return ColorList.fromNumpyArray(out.astype('float32').ravel())
         except ValueError:
                self.raiseErrorMessage("Length Mismatch")
                return

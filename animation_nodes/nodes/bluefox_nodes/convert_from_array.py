@@ -67,19 +67,19 @@ class ConvertFromArrayNode(bpy.types.Node, AnimationNode):
                 elif self.mode == "VECTORS":
                     if len(shape) != 2 or shape[-1] != 3: 
                         self.raiseErrorMessage("Expected Array of Shape (n,3)")     
-                    return Vector3DList.fromNumpyArray(array.astype('f').flatten())
+                    return Vector3DList.fromNumpyArray(array.astype('f').ravel())
                 elif self.mode == "COLORS":
                     if len(shape) != 2 or shape[-1] != 4: 
                         self.raiseErrorMessage("Expected Array of Shape (n,4)")   
-                    return ColorList.fromNumpyArray(array.astype('f').flatten())
+                    return ColorList.fromNumpyArray(array.astype('f').ravel())
                 elif self.mode == "QUATERNIONS":
                     if len(shape) != 2 or shape[-1] != 4: 
                         self.raiseErrorMessage("Expected Array of Shape (n,4)")  
-                    return QuaternionList.fromNumpyArray(array.astype('f').flatten())
+                    return QuaternionList.fromNumpyArray(array.astype('f').ravel())
                 elif self.mode == "MATRICES":
                     if len(shape) != 3 or shape[-1] != 4 or shape[-2] != 4: 
                         self.raiseErrorMessage("Expected Array of Shape (n,4,4)")  
-                    return Matrix4x4List.fromNumpyArray(array.astype('f').flatten())
+                    return Matrix4x4List.fromNumpyArray(array.astype('f').ravel())
                 elif self.mode == "BOOLEANS":
                     if len(shape) != 1:
                         self.raiseErrorMessage("Expected Array of Shape (n,)")  

@@ -126,14 +126,14 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
                 newRotations = rotations
                 newScales = scales
                 if self.useOffset:
-                    newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').flatten())
+                    newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').ravel())
                 if self.useDirection:
-                    newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').flatten())
+                    newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').ravel())
                     newDirections = vector_lerp(Directions, newDirections, influences)
                     newDirections.normalize()
                     newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers()
                 if self.useScale:
-                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').flatten())
+                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').ravel())
                 _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
                 _r = VirtualEulerList.create(newRotations, (0, 0, 0))
                 _s = VirtualVector3DList.create(newScales, (1, 1, 1))
