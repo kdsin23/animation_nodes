@@ -29,9 +29,8 @@ arraymathItems = [
     ("ABSOLUTE", "Absolute", "", "", 21),
     ("MAX", "Max", "", "", 22),
     ("MIN", "Min", "", "", 23),
-    ("GRADIENT", "Gradient", "", "", 24),
-    ("EXP", "exp", "", "", 25),
-    ("LOG", "log", "", "", 26)
+    ("EXP", "exp", "", "", 24),
+    ("LOG", "log", "", "", 25)
 ]
 
 class ArrayMathNode(bpy.types.Node, AnimationNode):
@@ -74,7 +73,6 @@ class ArrayMathNode(bpy.types.Node, AnimationNode):
             if self.mode == "SQRT" : return np.sqrt(x)
             if self.mode == "CBRT" : return np.cbrt(x)
             if self.mode == "ABSOLUTE" : return np.absolute(x)
-            if self.mode == "GRADIENT" : return np.gradient(x)
             if self.mode == "EXP" : return np.exp(x)
             if self.mode == "LOG" : return np.log(x)
             
