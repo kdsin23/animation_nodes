@@ -105,7 +105,8 @@ class ArrayNodesMenu(bpy.types.Menu):
         layout = self.layout
         insertNode(layout, "an_ConvertToArray", "Convert To Array")
         insertNode(layout, "an_ConvertFromArray", "Convert From Array")
-        insertNode(layout, "an_ArrayMath", "Array Math") 
+        insertNode(layout, "an_ArrayMath", "Array Math")
+        insertNode(layout, "an_ArrayMix", "Array Mix") 
         insertNode(layout, "an_ArrayReshape", "Array Reshape") 
         insertNode(layout, "an_ArrayRandom", "Random Sample")     
 
