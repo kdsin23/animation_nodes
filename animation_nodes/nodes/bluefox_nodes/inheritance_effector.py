@@ -55,7 +55,7 @@ class InheritancEffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
             self.newOutput(VectorizedSocket("Vector", ["useAList", "useBList"],
             ("Vector out", "vec_out"), ("Vectors out", "vecs_out")))
             self.newOutput(VectorizedSocket("Float", ["useAList", "useBList"],
-            ("Value", "value"), ("Values", "values")))
+            ("Falloff Strength", "value"), ("Falloff Strengths", "values")))
                 
         elif self.mode == "MATRICES":
             self.newInput(VectorizedSocket("Matrix", "useAList",
@@ -65,7 +65,7 @@ class InheritancEffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
             self.newOutput(VectorizedSocket("Matrix", ["useAList", "useBList"],
             ("Matrix out", "mat_out"), ("Matrices out", "mats_out")))
             self.newOutput(VectorizedSocket("Float", ["useAList", "useBList"],
-            ("Value", "value"), ("Values", "values")))
+            ("Falloff Strength", "value"), ("Falloff Strengths", "values")))
 
         if self.selectMode == "SPLINE":
             self.newInput("Spline", "Path", "path", defaultDrawType = "PROPERTY_ONLY")
