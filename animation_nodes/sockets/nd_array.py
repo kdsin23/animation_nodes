@@ -30,13 +30,13 @@ class NDArraySocket(bpy.types.NodeSocket, AnimationNodeSocket):
         layout.prop(self, "value", text = text)
 
     def getValue(self):
-        return self.value
+        return NDArray.array(self.value)
 
     def setProperty(self, data):
         self.value = data
 
     def getProperty(self):
-        return self.value
+        return NDArray.array(self.value)
 
     def setRange(self, min, max):
         self.minValue = min
@@ -49,7 +49,7 @@ class NDArraySocket(bpy.types.NodeSocket, AnimationNodeSocket):
     @classmethod
     def correctValue(cls, value):
         if isinstance(value, NDArray.ndarray) or value is None:
-            return value, 0
+            return NDArray.array(value), 0
         return cls.getDefaultValue(), 2
 
 registerImplicitConversion("Float", "NDArray", "NDArray.array(value)")
