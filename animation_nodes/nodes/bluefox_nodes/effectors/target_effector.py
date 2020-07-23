@@ -1,11 +1,9 @@
 import bpy
-import numpy as np
 from bpy.props import *
 from ... matrix.c_utils import*
-from . effector_utils import vector_lerp
+from . effector_utils import targetEffectorFunction
 from .... base_types import AnimationNode, VectorizedSocket
 from .... events import propertyChanged, executionCodeChanged
-from ... falloff.point_distance_falloff import PointDistanceFalloff
 from .... algorithms.rotations import directionsToMatrices, eulersToDirections
 from .... data_structures import Vector3DList, VirtualVector3DList, VirtualEulerList, Matrix4x4List, DoubleList
 
@@ -76,87 +74,37 @@ class TargetEffectorNode(bpy.types.Node, AnimationNode):
         self.inputs[5].hide = not self.useScale
 
     def execute(self, matrices, targets, distanceIn, width, offsetStrength, scaleIn, guideIn, falloff):
-        if not self.useTargetList: targets = [targets]
+        if not self.useTargetList: targets = Matrix4x4List.fromValues([targets])
         count = len(matrices)
         if len(targets) == 0 or len(matrices) == 0:
             return Matrix4x4List(), DoubleList(), DoubleList()
         else:
-            DefaultList = DoubleList(length = count)
-            DefaultList.fill(0)
             if [self.useDirection, self.useOffset, self.useScale] == [0,0,0]:
+                DefaultList = DoubleList(length = count)
+                DefaultList.fill(0)
                 return matrices, DefaultList, DefaultList
             else:
                 vectors = extractMatrixTranslations(matrices)
-                rotations = extractMatrixRotations(matrices)
                 scales = extractMatrixScales(matrices)
-                Directions = eulersToDirections(rotations, self.directionAxis)
-                scalesArray = scales.asNumpyArray().reshape(count, 3)
-                if self.useDirection:
-                    targetDirections = np.zeros((count, 3), dtype='float32')
-                    if self.considerRotationsIn:
-                        targetDirections = Directions.asNumpyArray().reshape(count, 3)
-                targetOffsets = vectors.asNumpyArray().reshape(count, 3)
+                Directions = eulersToDirections(extractMatrixRotations(matrices), self.directionAxis)
+
+                targetDirections = Vector3DList(length = len(vectors))
+                targetDirections.fill(0)
+
+                if self.considerRotationsIn:
+                    targetDirections = Directions.copy()
+
                 falloffEvaluator = self.getFalloffEvaluator(falloff)
                 influences = DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
-                influencesArray = influences.asNumpyArray()
-                strength = 0
-                for i, target in enumerate(targets):
-                    flag = 1
-                    center = target.to_translation()
-                    scale = target.to_scale().x
-                    if scale < 0:
-                        flag = -1
-                    size = abs(scale) + distanceIn
-                    newPositions, distances = self.targetSphericalDistance(vectors, center, size-1, width, flag)
-                    if self.useOffset:
-                        targetOffsets[:,0] += newPositions[:,0] * offsetStrength * influencesArray
-                        targetOffsets[:,1] += newPositions[:,1] * offsetStrength * influencesArray
-                        targetOffsets[:,2] += newPositions[:,2] * offsetStrength * influencesArray
-                    if self.useDirection:
-                        targetDirections += self.targetRotation(targetOffsets, center, flag)
-                    if self.useScale:
-                        scalesArray[:,0] += scaleIn.x * distances * influencesArray
-                        scalesArray[:,1] += scaleIn.y * distances * influencesArray
-                        scalesArray[:,2] += scaleIn.z * distances * influencesArray
-                    if i == 0:
-                        strength = distances
-                    else:    
-                        strength += distances
-                newVectors = vectors
-                newRotations = rotations
-                newScales = scales
-                if self.useOffset:
-                    newVectors = Vector3DList.fromNumpyArray(targetOffsets.astype('float32').ravel())
-                if self.useDirection:
-                    newDirections = Vector3DList.fromNumpyArray(targetDirections.astype('float32').ravel())
-                    newDirections = vector_lerp(Directions, newDirections, influences)
-                    newDirections.normalize()
-                    newRotations = directionsToMatrices(newDirections, guideIn, self.trackAxis, self.guideAxis).toEulers()
-                if self.useScale:
-                    newScales = Vector3DList.fromNumpyArray(scalesArray.astype('float32').ravel())
-                _v = VirtualVector3DList.create(newVectors, (0, 0, 0))    
-                _r = VirtualEulerList.create(newRotations, (0, 0, 0))
-                _s = VirtualVector3DList.create(newScales, (1, 1, 1))
-                return composeMatrices(count, _v, _r, _s), DoubleList.fromNumpyArray(np.clip(strength, 0, 1).astype('double')), influences 
 
-    def targetRotation(self, vectors, target, flag):
-        temp = vectors - np.asarray(target)
-        vectorLength = np.sqrt(temp[:,0] * temp[:,0] + temp[:,1] * temp[:,1] + temp[:,2] * temp[:,2])
-        vectorLength[vectorLength == 0] = 0.00001
-        reshapedLength = np.repeat(vectorLength, 3).reshape(-1, 3)
-        return temp / (reshapedLength * reshapedLength) * flag
+                v, d, s, eStrength = targetEffectorFunction(targets, vectors, targetDirections, scales, Directions, distanceIn, width, 
+                            offsetStrength, scaleIn, influences, self.useOffset, self.useDirection, self.useScale)
+                r = directionsToMatrices(d, guideIn, self.trackAxis, self.guideAxis).toEulers()
 
-    def targetSphericalDistance(self, vectors, target, size, width, flag):
-        pointfalloff = PointDistanceFalloff(target, size-1, width)
-        falloffEvaluator = self.getFalloffEvaluator(pointfalloff)
-        distances = falloffEvaluator.evaluateList(vectors)
-        distancesArray = np.clip(distances.asNumpyArray(), 0, 1)
-        vectorArray = vectors.asNumpyArray().reshape(len(vectors), 3)
-        temp = (vectorArray - np.asarray(target)) * flag
-        temp[:,0] *= distancesArray
-        temp[:,1] *= distancesArray
-        temp[:,2] *= distancesArray
-        return temp, distancesArray
+                _v = VirtualVector3DList.create(v, (0, 0, 0))    
+                _r = VirtualEulerList.create(r, (0, 0, 0))
+                _s = VirtualVector3DList.create(s, (1, 1, 1))
+                return composeMatrices(count, _v, _r, _s), eStrength, influences
 
     def getFalloffEvaluator(self, falloff):
         try: return falloff.getEvaluator("LOCATION")

@@ -6,10 +6,11 @@ from mathutils import Matrix, Euler, Vector
 from .... math import matrix4x4ListToEulerList
 from .... libs.FastNoiseSIMD.wrapper import PyNoise
 from .... algorithms.lists.random import generateRandomVectors
+from ... falloff.point_distance_falloff import PointDistanceFalloff
 from .... algorithms.random import uniformRandomDoubleWithTwoSeeds, getRandom3DVector
 from .... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated 
 from .... data_structures cimport (
-    DoubleList, FloatList,VirtualMatrix4x4List,
+    DoubleList, FloatList,VirtualMatrix4x4List, Falloff,
     Vector3DList, EulerList, Matrix4x4List, QuaternionList,
     VirtualVector3DList, VirtualEulerList, VirtualFloatList, VirtualDoubleList,
     Action, ActionEvaluator, PathIndexActionChannel,
@@ -25,7 +26,7 @@ from .... math cimport (
     invertOrthogonalTransformation,setTranslationRotationScaleMatrix,
     setRotationXMatrix, setRotationYMatrix, setRotationZMatrix,
     setRotationMatrix, setTranslationMatrix, setIdentityMatrix,
-    setScaleMatrix,setMatrixTranslation,transposeMatrix_Inplace
+    setScaleMatrix,setMatrixTranslation,transposeMatrix_Inplace, setVector3
 )
 
 ####################################    Rotation Functions    ##############################################
@@ -127,23 +128,24 @@ def quaternion_lerp(QuaternionList qA, QuaternionList qB, DoubleList influences)
 def vector_lerp(Vector3DList vA, Vector3DList vB, DoubleList influences):
     cdef Py_ssize_t count = max(vA.getLength(), vB.getLength())
     cdef Py_ssize_t i
+    cdef double s
     cdef Vector3DList out_vectorlist = Vector3DList(length = count)
 
     for i in range(count):
-        out_vectorlist.data[i].x = vA.data[i].x * (1-influences.data[i]) + vB.data[i].x * influences.data[i]
-        out_vectorlist.data[i].y = vA.data[i].y * (1-influences.data[i]) + vB.data[i].y * influences.data[i]
-        out_vectorlist.data[i].z = vA.data[i].z * (1-influences.data[i]) + vB.data[i].z * influences.data[i]
+        s = 1-influences.data[i]
+        out_vectorlist.data[i].x = vA.data[i].x * s + vB.data[i].x * influences.data[i]
+        out_vectorlist.data[i].y = vA.data[i].y * s + vB.data[i].y * influences.data[i]
+        out_vectorlist.data[i].z = vA.data[i].z * s + vB.data[i].z * influences.data[i]
 
     return out_vectorlist
 
 def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
     cdef Matrix4x4List m = matrix_lerp_skew(mA, mB, influences)
-    cdef Vector3DList s = vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), influences)
     cdef VirtualVector3DList translations_out = VirtualVector3DList.create(extractMatrixTranslations(m), (0, 0, 0))
     cdef VirtualEulerList rotations_out = VirtualEulerList.create(extractMatrixRotations(m), (0, 0, 0))
-    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(s, (1, 1, 1))
+    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), influences), (1, 1, 1))
 
-    return composeMatrices(len(mA), translations_out, rotations_out, scales_out)    
+    return composeMatrices(len(mA), translations_out, rotations_out, scales_out)
 
 def matrix_lerp_skew(Matrix4x4List matrix1, Matrix4x4List matrix2, DoubleList influences): # scale skewing issue
     cdef Py_ssize_t count = len(matrix1)
@@ -287,3 +289,115 @@ def inheritanceCurveMatrix(Matrix4x4List mA, Matrix4x4List mB, Vector3DList spli
     cdef VirtualVector3DList scales_out = VirtualVector3DList.create(s, (1, 1, 1))
 
     return composeMatrices(len(mA), translations_out, rotations_out, scales_out)
+
+####################################    Target Effector Functions    ##############################################
+
+def findTargetDirection(Vector3DList vectors, target, Py_ssize_t negFlag):
+    cdef Py_ssize_t i
+    cdef Py_ssize_t count = len(vectors)
+    cdef float vectorLength
+    cdef float x,y,z
+    cdef Vector3DList outVectors = Vector3DList(length = count)
+    cdef float targetX = target.x
+    cdef float targetY = target.y
+    cdef float targetZ = target.z
+
+    for i in range(count):
+        x = vectors.data[i].x - targetX
+        y = vectors.data[i].y - targetY
+        z = vectors.data[i].z - targetZ
+
+        vectorLength = sqrt(x*x + y*y + z*z)
+        if vectorLength == 0:
+            vectorLength = 0.00001
+
+        outVectors.data[i].x = x / (vectorLength * vectorLength) * negFlag
+        outVectors.data[i].y = y / (vectorLength * vectorLength) * negFlag
+        outVectors.data[i].z = z / (vectorLength * vectorLength) * negFlag        
+
+    return outVectors
+
+def findSphericalDistance(Vector3DList vectors, target, float size, float width, Py_ssize_t negFlag, float offsetStrength, DoubleList influences, useOffset):
+    cdef Py_ssize_t i
+    cdef Py_ssize_t count = len(vectors)
+    cdef Vector3DList outVectors = Vector3DList(length = count)
+    cdef Falloff pointfalloff = PointDistanceFalloff(target, size-1, width)
+    cdef float x = target.x
+    cdef float y = target.y
+    cdef float z = target.z
+
+    falloffEvaluator = pointfalloff.getEvaluator("LOCATION")
+    cdef DoubleList distances = DoubleList.fromValues(falloffEvaluator.evaluateList(vectors))
+    distances.clamp(0,1)
+
+    for i in range(count):
+        outVectors.data[i].x = (vectors.data[i].x - x) * negFlag
+        outVectors.data[i].y = (vectors.data[i].y - y) * negFlag
+        outVectors.data[i].z = (vectors.data[i].z - z) * negFlag
+
+        if useOffset:
+            outVectors.data[i].x *= distances.data[i] * influences.data[i] * offsetStrength
+            outVectors.data[i].y *= distances.data[i] * influences.data[i] * offsetStrength
+            outVectors.data[i].z *= distances.data[i] * influences.data[i] * offsetStrength
+
+    return outVectors, distances
+
+def scaleTarget(Vector3DList vectors, scaleIn, DoubleList distances, DoubleList influences):
+    cdef Py_ssize_t i
+    cdef Py_ssize_t count = len(vectors)
+    cdef float x = scaleIn.x
+    cdef float y = scaleIn.y
+    cdef float z = scaleIn.z
+
+    for i in range(count):
+        vectors.data[i].x +=  x * distances.data[i] * influences.data[i]
+        vectors.data[i].y +=  y * distances.data[i] * influences.data[i]
+        vectors.data[i].z +=  z * distances.data[i] * influences.data[i]
+    return vectors
+
+def vectorListAdd(Vector3DList vectorsA, Vector3DList vectorsB):
+    cdef Py_ssize_t i
+    for i in range(len(vectorsA)):
+        vectorsA.data[i].x += vectorsB.data[i].x
+        vectorsA.data[i].y += vectorsB.data[i].y
+        vectorsA.data[i].z += vectorsB.data[i].z
+    return vectorsA        
+
+def targetEffectorFunction(Matrix4x4List targets, Vector3DList targetOffsets, Vector3DList targetDirections, Vector3DList targetScales, 
+        Vector3DList Directions, float distanceIn, float width, float offsetStrength, scaleIn, DoubleList influences, bint useOffset, bint useDirection, bint useScale):
+    cdef Py_ssize_t i, j, negFlag    
+    cdef Py_ssize_t count = len(targetOffsets)
+    cdef Py_ssize_t targets_count = len(targets)
+    cdef float size, scale
+    cdef Vector3DList newPositions = targetOffsets.copy()
+    cdef Vector3DList centers = extractMatrixTranslations(targets)
+    cdef DoubleList distances = DoubleList(length = count)
+    cdef DoubleList strengths = DoubleList(length = count)
+
+    distances.fill(0)
+    strengths.fill(0)
+    
+    for i in range(targets_count):
+        negFlag = 1
+        scale = targets.data[i].a11
+        if scale < 0:
+            negFlag = -1
+        size = absNumber(scale) + distanceIn
+        if useOffset or useScale:
+            newPositions, distances = findSphericalDistance(targetOffsets, centers[i], size, width, negFlag, offsetStrength, influences, useOffset)
+            if useOffset:
+                targetOffsets = vectorListAdd(targetOffsets, newPositions)
+            if useScale:
+                targetScales = scaleTarget(targetScales, scaleIn, distances, influences)    
+        if useDirection:
+            targetDirections = vectorListAdd(targetDirections, findTargetDirection(targetOffsets, centers[i], negFlag))
+        if i == 0:
+            strengths = distances
+        else:
+            for j in range(count):
+                strengths.data[j] = max(strengths.data[j], distances.data[j])
+    if useDirection:
+        targetDirections = vector_lerp(Directions, targetDirections, influences)
+        targetDirections.normalize()        
+
+    return targetOffsets, targetDirections, targetScales, strengths
