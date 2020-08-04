@@ -43,13 +43,17 @@ class Formulafalloff(bpy.types.Node, AnimationNode):
 
     def execute(self, formula, count, t, f, a):
         falloff_out = ConstantFalloff(0)
-        strength_out = DoubleList()
+        strength_out = DoubleList(length = count)
+        strength_out.fill(0)
         
         if formula == "":
             pass
         elif isCodeValid(formula): 
-            result = self.evaluateFormula(formula, count, t, f, a)
+            
             try:
+                result = self.evaluateFormula(formula, count, t, f, a)
+                if type(result).__name__ != "ndarray" and not callable(result):
+                    result = np.repeat(result, count)
                 falloff_out = CustomFalloff(FloatList.fromNumpyArray(result.astype('f')), 0)
                 strength_out = DoubleList.fromNumpyArray(result.astype('double'))
             except:
@@ -60,7 +64,6 @@ class Formulafalloff(bpy.types.Node, AnimationNode):
         return falloff_out, strength_out
     
     def evaluateFormula(self, formula, count, t, f, a):
-        default_result = np.zeros(count)
         t *= self.nodeTree.scene.frame_current_final
         id = np.linspace(1, count, num = count, dtype = "int")
 
@@ -96,11 +99,4 @@ class Formulafalloff(bpy.types.Node, AnimationNode):
         def copysign(x,y):return np.copysign(x,y)
         def dist(x,y):return np.linalg.norm(x-y)
 
-        try:
-            result = eval(formula)
-            if type(result).__name__ != "ndarray" and not callable(result):
-                return np.repeat(result, count)   
-            return result
-        except:
-            self.raiseErrorMessage("Incorrect formula")
-            return default_result
+        return eval(formula)
