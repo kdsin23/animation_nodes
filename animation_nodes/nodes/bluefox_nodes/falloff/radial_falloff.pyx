@@ -16,9 +16,9 @@ axisItems = [
     ("Z", "Z", "", "", 2)
 ]
 
-class RadialFalloffNode(bpy.types.Node, AnimationNode):
-    bl_idname = "an_RadialFalloff"
-    bl_label = "Radial Falloff"
+class RadialFalloff_Node(bpy.types.Node, AnimationNode):
+    bl_idname = "an_RadialFalloff_old"
+    bl_label = "Radial Falloff old"
 
     __annotations__ = {}
     __annotations__["axis"] =  EnumProperty(default = "Z", items = axisItems,
