@@ -3,11 +3,10 @@ from libc.stdint cimport uint32_t
 from .. lists.polygon_indices_list cimport PolygonIndicesList
 from .. lists.base_lists cimport (
     UIntegerList, EdgeIndices, IntegerList,
-    Vector3DList, EdgeIndicesList, LongList,
+    Vector3DList, EdgeIndicesList
 )
 
-def checkMeshData(Vector3DList vertices, EdgeIndicesList edges,
-                  PolygonIndicesList polygons, LongList materialIndices):
+def checkMeshData(Vector3DList vertices, EdgeIndicesList edges, PolygonIndicesList polygons):
     # TODO: maybe check vertices for NaN and inf
     if edges.length > 0 and edges.getMaxIndex() >= vertices.length:
         raise Exception("There is an edge that references a not existing vertex")
@@ -24,9 +23,6 @@ def checkMeshData(Vector3DList vertices, EdgeIndicesList edges,
     cdef IntegerList polygonsLookup = getLookupForPolygonHashes(polygonHashes, polygons)
 
     checkIfAllRequiredEdgesExist(polygons, edges, edgeHashes, edgesLookup)
-
-    checkMaterialIndicesValidity(polygons, materialIndices)
-
 
 def validMeshDataFromSourceData(Vector3DList sourceVertices,
                                 EdgeIndicesList sourceEdges, PolygonIndicesList sourcePolygons):
@@ -180,15 +176,6 @@ def getAllPolygonEdges(PolygonIndicesList polygons):
 
     return edges
 
-
-# Check Material Indices
-####################################################
-
-def checkMaterialIndicesValidity(PolygonIndicesList polygons, LongList materialIndices):
-    if polygons.getLength() != materialIndices.length:
-        raise Exception("Material indices length doesn't match polygons.")
-    if materialIndices.containsValueLowerThan(0):
-        raise Exception("Material indices can't contain negative indices.")
 
 # Compute edge/polygon hashes
 ####################################################

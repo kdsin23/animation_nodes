@@ -2,10 +2,9 @@ import bpy
 from .... base_types import AnimationNode
 from .... data_structures import (
     Mesh,
-    LongList,
     Vector3DList,
     EdgeIndicesList,
-    PolygonIndicesList,
+    PolygonIndicesList
 )
 
 class UnityTriangleMeshNode(bpy.types.Node, AnimationNode):
@@ -29,7 +28,4 @@ edgeIndices = EdgeIndicesList.fromValues(
 polygonIndices = PolygonIndicesList.fromValues(
     [(0, 1, 2)]
 )
-materialIndices = LongList.fromValues(
-    [0]
-)
-mesh = Mesh(vertexLocations, edgeIndices, polygonIndices, materialIndices, skipValidation = True)
+mesh = Mesh(vertexLocations, edgeIndices, polygonIndices)

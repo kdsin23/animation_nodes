@@ -1,21 +1,15 @@
 from libc.math cimport sin, cos
 from libc.math cimport M_PI as PI
-from ... data_structures cimport (
-    Vector3DList, EdgeIndicesList, PolygonIndicesList, Mesh, LongList,
-)
+from ... data_structures cimport Vector3DList, EdgeIndicesList, PolygonIndicesList, Mesh
 
 def getCylinderMesh(float radius, float height, Py_ssize_t resolution, bint caps = True):
     if resolution < 2:
         raise Exception("resolution has to be >= 2")
 
-    cdef PolygonIndicesList polygonIndices = polygons(resolution, caps)
-    cdef LongList materialIndices = LongList(length = polygonIndices.getLength())
-    materialIndices.fill(0)
     return Mesh(
         vertices(radius, height, resolution),
         edges(resolution),
-        polygonIndices,
-        materialIndices,
+        polygons(resolution, caps),
         skipValidation = True)
 
 # Vertices
