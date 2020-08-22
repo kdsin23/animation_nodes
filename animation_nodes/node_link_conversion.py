@@ -156,7 +156,7 @@ class ConvertObjectToShapeKey(LinkCorrection):
     def insert(self, nodeTree, origin, target, dataOrigin):
         getShapeKeys, getListElement = insertNodes(nodeTree, ["an_ShapeKeysFromObjectNode", "an_GetListElementNode"], origin, target)
         getListElement.inputs[1].value = 1
-        getListElement.assignedType = "Shape Key"
+        getListElement.assignType("Shape Key")
 
         origin.linkWith(getShapeKeys.inputs[0])
         getShapeKeys.outputs[0].linkWith(getListElement.inputs[0])

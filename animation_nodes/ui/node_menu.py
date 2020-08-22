@@ -40,7 +40,6 @@ def drawMenu(self, context):
     layout.menu("AN_MT_action_menu", text = "Action", icon = "ANIM_DATA")
     layout.menu("AN_MT_fcurve_menu", text = "FCurves", icon = "FCURVE")
     layout.menu("AN_MT_material_menu", text = "Material", icon = "NODE_MATERIAL")
-    layout.menu("AN_MT_texture_menu", text = "Texture", icon = "TEXTURE_DATA")
     layout.menu("AN_MT_sound_menu", text = "Sound", icon = "SPEAKER")
     layout.menu("AN_MT_sequence_menu", text = "Sequence", icon = "SEQUENCE")
     layout.separator()
@@ -121,7 +120,6 @@ class VectorMenu(bpy.types.Menu):
         insertNode(layout, "an_VectorListMathNode", "List Math")
         insertNode(layout, "an_TransformVectorNode", "Transform")
         insertNode(layout, "an_OffsetVectorNode", "Offset", {"useVectorList" : repr(True)})
-        insertNode(layout, "an_ClosePackingNode", "Close Packing")
 
 class RotationMenu(bpy.types.Menu):
     bl_idname = "AN_MT_rotation_menu"
@@ -203,6 +201,7 @@ class TextMenu(bpy.types.Menu):
         insertNode(layout, "an_TextLengthNode", "Length")
         layout.separator()
         insertNode(layout, "an_LSystemNode", "LSystem")
+        insertNode(layout, "an_DecomposeTextNode", "Decompose Text")
         layout.separator()
         insertNode(layout, "an_TextBlockReaderNode", "Block Reader")
         insertNode(layout, "an_TextBlockWriterNode", "Block Writer")
@@ -249,6 +248,7 @@ class ListMenu(bpy.types.Menu):
         layout.menu("AN_MT_create_list_menu", text = "Create")
         layout.menu("AN_MT_combine_list_menu", text = "Combine")
         insertNode(layout, "an_AppendListNode", "Append")
+        insertNode(layout, "an_InsertListElementNode", "Insert")
         layout.separator()
         insertNode(layout, "an_GetListElementNode", "Get Element")
         insertNode(layout, "an_GetRandomListElementsNode", "Get Random Elements")
@@ -266,6 +266,7 @@ class ListMenu(bpy.types.Menu):
         layout.separator()
         insertNode(layout, "an_FillListNode", "Fill")
         insertNode(layout, "an_RepeatListNode", "Repeat")
+        insertNode(layout, "an_RepeatListElementsNode", "Repeat Elements")
         insertNode(layout, "an_RandomListNode", "Random")
         insertNode(layout, "an_ListBooleanOperationsNode", "List Boolean Operations")
         layout.separator()
@@ -467,7 +468,6 @@ class MeshOperatorsMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         insertNode(layout, "an_FindClosePointsNode", "Find Close Points")
-        insertNode(layout, "an_FindShortestPathNode", "Find Shortest Path")
         insertNode(layout, "an_EdgeToTubeNode", "Edge to Tube")
         insertNode(layout, "an_MeshPointsScatterNode", "Scatter Points")
         layout.separator()
@@ -618,7 +618,6 @@ class FalloffMenu(bpy.types.Menu):
         insertNode(layout, "an_ObjectControllerFalloffNode", "Object Controller")
         insertNode(layout, "an_SoundFalloffNode", "Sound")
         insertNode(layout, "an_SplineFalloffNode", "Spline")
-        insertNode(layout, "an_MeshFalloffNode", "Mesh")
         layout.separator()
         insertNode(layout, "an_ConstantFalloffNode", "Constant")
         insertNode(layout, "an_CustomFalloffNode", "Custom")
@@ -633,7 +632,6 @@ class FalloffMenu(bpy.types.Menu):
         insertNode(layout, "an_MixFalloffsNode", "Mix")
         layout.separator()
         insertNode(layout, "an_EvaluateFalloffNode", "Evaluate")
-        insertNode(layout, "an_FalloffTracerNode", "Falloff Tracer")
 
 class MaterialMenu(bpy.types.Menu):
     bl_idname = "AN_MT_material_menu"
@@ -643,25 +641,11 @@ class MaterialMenu(bpy.types.Menu):
         layout = self.layout
         insertNode(layout, "an_DataInputNode", "Material Input", {"assignedType" : repr("Material")})
         insertNode(layout, "an_ObjectMaterialInputNode", "Object Material Input")
-        insertNode(layout, "an_BlendDataByNameNode", "Material By Name", {"dataType" : repr("Material")})
         insertNode(layout, "an_ObjectMaterialOutputNode", "Object Material Output")
         insertNode(layout, "an_MaterialOutputNode", "Material Output")
         insertNode(layout, "an_CyclesMaterialOutputNode", "Cycles Material Output")
         insertNode(layout, "an_GPMaterialOutputNode", "GP Material Output")
         insertNode(layout, "an_SetPolygonMaterialIndexNode", "Set Polygon Material Index")
-        insertNode(layout, "an_MaterialAttributeInputNode", "Material Attribute Input")
-        insertNode(layout, "an_MaterialAttributeOutputNode", "Material Attribute Output")
-        insertNode(layout, "an_FilterBlendDataListByNameNode", "Filter Material List", {"dataType" : repr("Material")})
-        layout.separator()
-        insertNode(layout, "an_MaterialInstancerNode", "Material Instancer")
-
-class TexturelMenu(bpy.types.Menu):
-    bl_idname = "AN_MT_texture_menu"
-    bl_label = "Texture Menu"
-
-    def draw(self, context):
-        layout = self.layout
-        insertNode(layout, "an_TextureInputNode", "Texture Input")
 
 class ParticleSystemMenu(bpy.types.Menu):
     bl_idname = "AN_MT_particle_system_menu"
@@ -672,7 +656,6 @@ class ParticleSystemMenu(bpy.types.Menu):
         insertNode(layout, "an_ParticleSystemsFromObjectNode", "From Object")
         insertNode(layout, "an_ParticleSystemParticlesDataNode", "Particles Data")
         insertNode(layout, "an_ParticleSystemHairDataNode", "Hair Data")
-        insertNode(layout, "an_ParticlesOutputNode", "Particles Data Output")
 
 class FCurveMenu(bpy.types.Menu):
     bl_idname = "AN_MT_fcurve_menu"
