@@ -84,6 +84,7 @@ class AlphaNodesMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        insertNode(layout, "an_SimpleDeformNode", "Simple Deform")
         insertNode(layout, "an_SwitchListElementsNode", "Switch List Elements")
         insertNode(layout, "an_RigidBodyTrigger", "Rigid Body Trigger")
         insertNode(layout, "an_MarchingCubes", "Marching Cubes")
