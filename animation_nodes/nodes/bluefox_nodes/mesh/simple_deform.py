@@ -4,7 +4,7 @@ from bpy.props import *
 from mathutils import Euler
 from .... base_types import AnimationNode
 from .... utils.math import rotationMatrix
-from . mesh_utils import twistDeform, taperDeform, bendDeform
+from . mesh_utils import twistDeform, taperDeform, bendDeform, transformVectors
 
 DeformTypeItems = [
     ("BEND", "Bend", "", "", 0),
@@ -26,27 +26,33 @@ class SimpleDeformNode(bpy.types.Node, AnimationNode):
         items = DeformTypeItems, update = AnimationNode.refresh)
 
     axis: EnumProperty(name = "Axis", default = "Z",
-        items = axisItems, update = AnimationNode.refresh)    
+        items = axisItems, update = AnimationNode.refresh)
+
+    enableHelper: BoolProperty(name = "Helper axis", default = True, update = AnimationNode.refresh)        
 
     def create(self):
-        self.newInput("Vector List", "Vertices", "vertices")
+        self.newInput("Vector List", "Vertices", "vertices", dataIsModified = True)
         self.newInput("Matrix", "Origin", "origin")
         self.newInput("Float", "Angle", "angle", value = 5)
         self.newInput("Float", "Low", "low", hide = True)
         self.newInput("Float", "High", "high", value = 1, hide = True)
-        self.newOutput("Vector List", "Vertices", "verticesOut")
+        self.newOutput("Vector List", "Vertices", "vertices")
 
     def draw(self, layout):
         layout.prop(self, "deformType", text = "")
-        col = layout.column()
-        col.row().prop(self, "axis", expand = True)
+        if self.enableHelper:
+            col = layout.column()
+            col.row().prop(self, "axis", expand = True)
 
+    def drawAdvanced(self, layout):
+        layout.prop(self, "enableHelper", text = "Enable Helper Axis")
+            
     def calculateMatrix(self, origin):
-        eulerAngle = Euler((0,0,0))
+        eulerAngle = Euler((0,0,1.5708))
         if self.axis == "X":
-            eulerAngle = Euler((1.5708, 1.5708, 1.5708))
+            eulerAngle = Euler((1.5708, 0, 1.5708))
         if self.axis == "Y":
-            eulerAngle = Euler((1.5708, 1.5708, 0))
+            eulerAngle = Euler((1.5708, 0, 0))
         return origin @ rotationMatrix(eulerAngle)
 
     def getMinMax(self, vertices, coord):
@@ -62,18 +68,20 @@ class SimpleDeformNode(bpy.types.Node, AnimationNode):
         if len(vertices) == 0:
             return vertices
 
-        mat = self.calculateMatrix(origin)
-        vertices.transform(mat.inverted())
+        mat = origin
+        if self.enableHelper:
+            mat = self.calculateMatrix(origin)
+        vertices = transformVectors(vertices, mat.inverted())
 
         if self.deformType == "BEND":
             minX, maxX = self.getMinMax(vertices, 'X')
-            result = bendDeform(vertices, minX, maxX, low, high, angle)
+            vertices = bendDeform(vertices, minX, maxX, low, high, angle)
         elif self.deformType == "TWIST":
             minZ, maxZ = self.getMinMax(vertices, 'Z')
-            result = twistDeform(vertices, minZ, maxZ, low, high, angle)
+            vertices = twistDeform(vertices, minZ, maxZ, low, high, angle)
         elif self.deformType == "TAPER":
             minZ, maxZ = self.getMinMax(vertices, 'Z')
-            result = taperDeform(vertices, minZ, maxZ, low, high, angle)    
+            vertices = taperDeform(vertices, minZ, maxZ, low, high, angle)    
 
-        result.transform(mat)
-        return result
+        vertices = transformVectors(vertices, mat)
+        return vertices

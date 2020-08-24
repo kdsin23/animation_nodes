@@ -1,6 +1,8 @@
 import cython
 from libc.math cimport sin, cos, M_PI
 from .... data_structures cimport Vector3DList
+from .... math.matrix cimport transformVec3AsPoint
+from .... math cimport Matrix4, toMatrix4, Vector3
 
 ######################################### simple deform utils #####################################
 # adapted from Sverchok:https://github.com/nortikin/sverchok/blob/master/nodes/transforms/deform.py
@@ -57,57 +59,51 @@ def taperDeform(Vector3DList vertices, float minValue, float maxValue, float low
         outVertices.data[i].z = z
     return outVertices
 
-def bendDeform(Vector3DList vertices, float minValue, float maxValue, float low, float high, float angle):
+def bendDeform(Vector3DList vertices, float minValue1, float maxValue1, float low, float high, float angle):
     cdef Py_ssize_t i
     cdef Py_ssize_t count = len(vertices)
     cdef Vector3DList outVertices = Vector3DList(length = count)
-    cdef float x, y, z, delta, rVal, minS, maxS, dx, dy, phi, rho, hl
+    cdef float x, y, z, lim, theta, rVal, dx, dy, phi, rho
 
     if angle == 0:
         return vertices
     else:
-        delta = maxValue - minValue
-        if delta == 0:
-            delta = 0.00001
+        lim = maxValue1 - minValue1
+        theta = angle / (high - low)
+        if lim == 0:
+            lim = 0.00001
+        rVal = lim/angle
 
-        minS = minValue
-        maxS = maxValue
-
-        if minS != maxS:
-            minS = minValue + low * delta
-            maxS = minValue + high * delta
-
-        hl = high - low
-        if hl == 0:
-            hl = 0.00001    
-
-        angle /= hl
-        rVal = delta / angle
+        minValue, maxValue = limit(minValue1, maxValue1, low, high)
 
         for i in range(count):
+            dx = dy = 0
             x = vertices.data[i].x
             y = vertices.data[i].y
             z = vertices.data[i].z
 
-            dx = 0
-            dy = 0
+            if x < minValue:
+                dx = (x - minValue) * cos(minValue * theta / lim)
+                dy = (x - minValue) * sin(minValue * theta / lim)
+                x = minValue
+            if x > maxValue:
+                dx = (x - maxValue) * cos(maxValue * theta / lim)
+                dy = (x - maxValue) * sin(maxValue * theta / lim)
+                x = maxValue
 
-            if x < minS:
-                dx = (x - minS) * cos(minS * angle / delta)
-                dy = (x - minS) * sin(minS * angle / delta)
-                x = minS
-            if x > maxS:
-                dx = (x - maxS) * cos(maxS * angle / delta)
-                dy = (x - maxS) * sin(maxS * angle / delta)
-                x = maxS
+            phi =  (x / lim) * theta - M_PI / 2
+            rho =  rVal - y
 
-            phi = (x / delta) * angle - M_PI / 2
-            rho = rVal - y
-
-            outVertices.data[i].x = rho * cos(phi) + dx
-            outVertices.data[i].y = rho * sin(phi) + rVal + dy
+            outVertices.data[i].x = (rho * cos(phi)) + dx
+            outVertices.data[i].y = (rho * sin(phi)) + rVal
             outVertices.data[i].z = z
+        return outVertices
 
-    return outVertices 
+########################################################################################################## 
 
-##########################################################################################################       
+def transformVectors(Vector3DList vectors, matrix):
+    cdef Matrix4 _matrix = toMatrix4(matrix)
+    cdef Vector3DList targets = Vector3DList(length = len(vectors))
+    for i in range(len(vectors)):
+        transformVec3AsPoint(&targets.data[i], &vectors.data[i], &_matrix)
+    return targets    
