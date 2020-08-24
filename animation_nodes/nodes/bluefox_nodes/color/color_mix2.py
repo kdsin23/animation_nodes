@@ -45,9 +45,9 @@ class Colormix2(bpy.types.Node, AnimationNode):
             ("Color", "color"), ("Colors", "colors")))   
 
     def draw(self, layout):
+        layout.prop(self, "mode", text = "")
         layout.prop(self, "clamp")
-        layout.prop(self, "mode")
-                   
+        
     def execute(self, colorsA, colorsB, factors, alpha):
         if not self.usecolorAList: colorsA = ColorList.fromValues([colorsA])
         if not self.usecolorBList: colorsB = ColorList.fromValues([colorsB])

@@ -71,7 +71,7 @@ class SimpleDeformNode(bpy.types.Node, AnimationNode):
         mat = origin
         if self.enableHelper:
             mat = self.calculateMatrix(origin)
-        vertices = transformVectors(vertices, mat.inverted())
+        vertices = transformVectors(vertices, mat.inverted_safe())
 
         if self.deformType == "BEND":
             minX, maxX = self.getMinMax(vertices, 'X')
