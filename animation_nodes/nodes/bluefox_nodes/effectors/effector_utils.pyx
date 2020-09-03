@@ -8,7 +8,6 @@ from .... libs.FastNoiseSIMD.wrapper import PyNoise
 from .... algorithms.lists.random import generateRandomVectors
 from ... falloff.point_distance_falloff import PointDistanceFalloff
 from .... algorithms.random import uniformRandomDoubleWithTwoSeeds, getRandom3DVector
-from .... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated 
 from .... data_structures cimport (
     DoubleList, FloatList,VirtualMatrix4x4List, Falloff,
     Vector3DList, EulerList, Matrix4x4List, QuaternionList,

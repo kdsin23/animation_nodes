@@ -5,7 +5,7 @@ from mathutils import Matrix
 from ... matrix.c_utils import extractMatrixTranslations
 from .... algorithms.rotations import directionsToMatrices
 from .... base_types import AnimationNode, VectorizedSocket
-from ... number . c_utils import range_DoubleList_StartStop
+from ... number . c_utils import range_DoubleList_StartStep
 from .... events import executionCodeChanged, propertyChanged
 from ... spline . spline_evaluation_base import SplineEvaluationBase
 from . effector_utils import matrix_lerp, vector_lerp, inheritanceCurveVector, inheritanceCurveMatrix
@@ -187,7 +187,7 @@ class InheritancEffector(bpy.types.Node, AnimationNode, SplineEvaluationBase):
     def evalSpline(self, spline, samples, withRotation):
         spline.ensureUniformConverter(self.resolution)
         spline.ensureNormals()
-        evalRange = range_DoubleList_StartStop(samples, 0, 1)
+        evalRange = range_DoubleList_StartStep(samples, 0, 1/samples)
         parameters = FloatList.fromValues(evalRange)
         parameters = spline.toUniformParameters(parameters)
         locations = spline.samplePoints(parameters, False, 'RESOLUTION')

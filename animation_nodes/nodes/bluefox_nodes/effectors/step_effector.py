@@ -9,7 +9,7 @@ from .... events import propertyChanged, executionCodeChanged
 from ... falloff . interpolate_falloff import InterpolateFalloff
 from .... data_structures import VirtualVector3DList, VirtualEulerList
 from .... data_structures import Matrix4x4List, DoubleList, Vector3DList, EulerList, FloatList
-from .... nodes.number.c_utils import range_DoubleList_StartStop, mapRange_DoubleList_Interpolated
+from .... nodes.number.c_utils import range_DoubleList_StartStep, mapRange_DoubleList_Interpolated
 
 class StepEffectorNode(bpy.types.Node, AnimationNode):
     bl_idname = "an_StepEffector"
@@ -67,8 +67,8 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
         if not self.useLocationList: locations = Vector3DList.fromValue(locations)
         if not self.useRotationList: rotations = EulerList.fromValue(rotations)
         if not self.useScaleList: scales = Vector3DList.fromValue(scales)
-        if matrices is None:
-            return Matrix4x4List()
+        if len(matrices) == 0:
+            return Matrix4x4List(), DoubleList(), DoubleList()
         else:
             falloff_strengths, effector_strengths = self.calculateStrengths(falloff, matrices, clamp, interpolation, minValue, maxValue)
             if not self.useLocation:
@@ -84,7 +84,8 @@ class StepEffectorNode(bpy.types.Node, AnimationNode):
             return newMatrices, effector_strengths, falloff_strengths
 
     def calculateStrengths(self, falloff, matrices, clamp, interpolation, minValue, maxValue):
-        strengths = range_DoubleList_StartStop(len(matrices), 0.00, 1.00)
+        amount = len(matrices)
+        strengths = range_DoubleList_StartStep(amount, 0.00, 1.0/amount)
         interpolatedStrengths = mapRange_DoubleList_Interpolated(strengths, interpolation, 0, 1, minValue, maxValue)
         mixedFalloff = MixFalloffs([falloff, CustomFalloff(FloatList.fromValues(interpolatedStrengths), 0)], "MULTIPLY", default = 1)
         if clamp:
