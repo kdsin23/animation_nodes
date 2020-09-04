@@ -5,7 +5,7 @@ from .... events import propertyChanged
 from .... base_types import AnimationNode
 from . utils.mcalgorithm import isosurface_np
 from .... data_structures.meshes.validate import createValidEdgesList
-from .... data_structures import Vector3DList, PolygonIndicesList, EdgeIndicesList, Mesh
+from .... data_structures import LongList, Vector3DList, PolygonIndicesList, EdgeIndicesList, Mesh
 
 fieldTypeItems = [
     ("FALLOFF", "Falloff", "Use falloff field", "", 0),
@@ -50,7 +50,9 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
                 vertexLocations = Vector3DList.fromValues((vertices / samples) * (b2n - b1n) + b1n)
                 polygonIndices = PolygonIndicesList.fromValues(faces)
                 edgeIndices = createValidEdgesList(polygons = polygonIndices)
-                return Mesh(vertexLocations, edgeIndices, polygonIndices, skipValidation = False)
+                materialIndices = LongList(length = len(polygonIndices))
+                materialIndices.fill(0)
+                return Mesh(vertexLocations, edgeIndices, polygonIndices, materialIndices, skipValidation = False)
             except Exception as e:
                 print("MarchingCubes Error:" + str(e))
                 self.raiseErrorMessage("Error!")
