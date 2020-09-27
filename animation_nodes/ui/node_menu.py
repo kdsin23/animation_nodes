@@ -227,6 +227,7 @@ class BooleanMenu(bpy.types.Menu):
         insertNode(layout, "an_SwitchNode", "Switch")
         insertNode(layout, "an_LogicOperatorsNode", "Logic")
         insertNode(layout, "an_BooleanListLogicNode", "List Logic")
+        insertNode(layout, "an_RandomBooleanNode", "Random Boolean")
 
 class ColorMenu(bpy.types.Menu):
     bl_idname = "AN_MT_color_menu"
@@ -238,6 +239,7 @@ class ColorMenu(bpy.types.Menu):
         insertNode(layout, "an_CombineColorNode", "Combine Color")
         insertNode(layout, "an_SeparateColorNode", "Separate Color")
         insertNode(layout, "an_MixDataNode", "Mix", {"dataType" : repr("Color")})
+        insertNode(layout, "an_RandomColorNode", "Random Color")
         layout.separator()
         insertNode(layout, "an_SetVertexColorNode", "Set Vertex Color")
 

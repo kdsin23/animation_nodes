@@ -89,7 +89,6 @@ class AlphaNodesMenu(bpy.types.Menu):
         insertNode(layout, "an_RigidBodyTrigger", "Rigid Body Trigger")
         insertNode(layout, "an_MarchingCubes", "Marching Cubes")
         insertNode(layout, "an_BMeshSmoothNode", "BMesh Smooth")
-        insertNode(layout, "an_RandomColor", "Random Color")
         insertNode(layout, "an_DupliInstancer", "Dupli Instancer")
         insertNode(layout, "an_splinetracer", "Spline Tracer")
         insertNode(layout, "an_MemoryNode", "Memory Node")
