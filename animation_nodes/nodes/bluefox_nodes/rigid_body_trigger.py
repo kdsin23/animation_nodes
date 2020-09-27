@@ -32,6 +32,8 @@ class RigidBodyTrigger(bpy.types.Node, AnimationNode):
     enableLink: BoolProperty(name = "Is Used", default = True, update = AnimationNode.refresh)
     enableShape: BoolProperty(name = "Is Used", default = True, update = AnimationNode.refresh)
     useMoreSettings: BoolProperty(name = "More Settings", default = False, update = AnimationNode.refresh)
+    linkInvoked: BoolProperty(name = "More Settings2", default = False, update = AnimationNode.refresh)
+    isLinked: BoolProperty(name = "More Settings", default = False, update = AnimationNode.refresh)
 
     def create(self):
         self.newInput("Scene", "Scene", "scene", hide = True)
@@ -67,25 +69,24 @@ class RigidBodyTrigger(bpy.types.Node, AnimationNode):
             inputSocket.removeLinks()
             inputSocket.hide = True
 
+    def invokeLinkUnlink(self):
+        # linkInvoked is set to 1 when button pressed
+        self.linkInvoked = True
+        # on every button press isLinked value is altered
+        self.isLinked = not self.isLinked
+
     def draw(self, layout):
-        row1 = layout.row(align = True)
-        row1.prop(self, "linkObject", text = "Link Objects", toggle = True)
-        row2 = row1.row(align = True)
-        testIcon = "LAYER_USED"
-        if self.enableLink:
-            testIcon = "LAYER_ACTIVE"
-        row2.prop(self, "enableLink", text = "", icon = testIcon)
-        row1.active = self.enableLink
-        
+        row = layout.row(align = True)
+        self.invokeFunction(row, "invokeLinkUnlink", text = "Link | Unlink")
         if self.useMoreSettings:
-            row3 = layout.row(align = True)
-            row3.prop(self, "collisionShape", text = "")
-            row4 = row3.row(align = True)
+            row2 = layout.row(align = True)
+            row2.prop(self, "collisionShape", text = "")
+            row3 = row2.row(align = True)
             testIcon = "LAYER_USED"
             if self.enableShape:
                 testIcon = "LAYER_ACTIVE"
-            row4.prop(self, "enableShape", text = "", icon = testIcon)
-            row3.active = self.enableShape
+            row3.prop(self, "enableShape", text = "", icon = testIcon)
+            row2.active = self.enableShape
 
     def drawAdvanced(self, layout):
         layout.prop(self, "useMoreSettings")     
@@ -114,8 +115,9 @@ class RigidBodyTrigger(bpy.types.Node, AnimationNode):
                 if rb_collection is None:
                     self.setErrorMessage("Rigid Body Collection not found")
                 else:
-                    if self.enableLink:
+                    if self.linkInvoked:
                         self.link_Objects(objects, rb_collection.objects)
+                        self.linkInvoked = False # on every execution this boolean value set to false
 
                     for obj, influence in zip(objects, influences):
                         if obj.type != "MESH":
@@ -152,8 +154,9 @@ class RigidBodyTrigger(bpy.types.Node, AnimationNode):
                 if rb_collection is None:
                     self.setErrorMessage("Rigid Body Collection not found")
                 else:
-                    if self.enableLink:
+                    if self.linkInvoked:
                         self.link_Objects(objects, rb_collection.objects)
+                        self.linkInvoked = False # on every execution this boolean value set to false
 
                     totalCount = len(dynamics) + len(masses) + len(frictions) + len(bouncinesses)
                     if totalCount / 4 != count:
@@ -178,7 +181,7 @@ class RigidBodyTrigger(bpy.types.Node, AnimationNode):
 
     def link_Objects(self, objects, rb_objects):
         for obj in objects:
-            if self.linkObject:
+            if self.isLinked:
                 if obj.name not in rb_objects: rb_objects.link(obj)
             else:
                 if obj.name in rb_objects: rb_objects.unlink(obj)
