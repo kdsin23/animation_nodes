@@ -12,7 +12,7 @@ from .... data_structures cimport (
     DoubleList, FloatList,VirtualMatrix4x4List, Falloff,
     Vector3DList, EulerList, Matrix4x4List, QuaternionList,
     VirtualVector3DList, VirtualEulerList, VirtualFloatList, VirtualDoubleList,
-    Action, ActionEvaluator, PathIndexActionChannel,
+    Action, ActionEvaluator, PathIndexActionChannel, VirtualQuaternionList,
     BoundedAction, BoundedActionEvaluator,Color,
     ColorList, PolygonIndicesList, IntegerList, PolySpline, BezierSpline, Interpolation
 )
@@ -20,18 +20,82 @@ from .... math cimport (
     add, subtract, multiply, divide_Save, modulo_Save,
     sin, cos, tan, asin_Save, acos_Save, atan, atan2, hypot,
     power_Save, floor, ceil, sqrt_Save, invert, reciprocal_Save,
-    snap_Save, copySign, floorDivision_Save, logarithm_Save,
+    snap_Save, copySign, floorDivision_Save, logarithm_Save, Quaternion,
     Vector3, Euler3, Matrix4, toMatrix4,toVector3,multMatrix4, toPyMatrix4,
     invertOrthogonalTransformation,setTranslationRotationScaleMatrix,
-    setRotationXMatrix, setRotationYMatrix, setRotationZMatrix,
-    setRotationMatrix, setTranslationMatrix, setIdentityMatrix,
-    setScaleMatrix,setMatrixTranslation,transposeMatrix_Inplace, setVector3
+    setRotationXMatrix, setRotationYMatrix, setRotationZMatrix, matrixToQuaternion,
+    setRotationMatrix, setTranslationMatrix, setIdentityMatrix,quaternionNormalize_InPlace,
+    setScaleMatrix,setMatrixTranslation,transposeMatrix_Inplace, setVector3, matrixToEuler
 )
 
 ####################################    Rotation Functions    ##############################################
 
+cdef matrix4x4ToLocation(Vector3 *t, Matrix4 *m):
+    t.x = m.a14
+    t.y = m.a24
+    t.z = m.a34
+
+cdef matrix4x4ToScale(Vector3 *s, Matrix4 *m):
+    s.x = m.a11 + m.a12 + m.a13
+    s.y = m.a21 + m.a22 + m.a23
+    s.z = m.a31 + m.a32 + m.a33
+
+cdef quaternionToEulerInPlace(Euler3 *e, Quaternion *q):
+    #quaternionNormalize_InPlace(q)
+    cdef float sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+    cdef float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+    e.x = atan2(sinr_cosp, cosr_cosp)
+
+    cdef float sinp = 2 * (q.w * q.y - q.z * q.x)
+    if absNumber(sinp) >= 1.0:
+        e.y = copySign(M_PI/2, sinp)
+    else:
+        e.y = asin(sinp)
+
+    cdef float siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+    cdef float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+    e.z = atan2(siny_cosp, cosy_cosp)
+    e.order = 0
+
+cdef quaternionToMatrix4Inplace(Matrix4 *m, Quaternion *q):
+    cdef float sqw = q.w * q.w
+    cdef float sqx = q.x * q.x
+    cdef float sqy = q.y * q.y
+    cdef float sqz = q.z * q.z
+
+    cdef invs = 1 / (sqx + sqy + sqz +sqw)
+
+    m.a11 = (sqx - sqy - sqz + sqw) * invs
+    m.a22 = (-sqx + sqy - sqz + sqw) * invs
+    m.a33 = (-sqx - sqy + sqz + sqw) * invs
+
+    cdef tmp1 = q.x * q.y
+    cdef tmp2 = q.z * q.w
+
+    m.a21 = 2.0 * (tmp1 + tmp2) * invs
+    m.a12 = 2.0 * (tmp1 - tmp2) * invs
+
+    tmp1 = q.x * q.z
+    tmp2 = q.y * q.w
+
+    m.a31 = 2.0 * (tmp1 - tmp2) * invs
+    m.a13 = 2.0 * (tmp1 + tmp2) * invs
+
+    tmp1 = q.y * q.z
+    tmp2 = q.x * q.w
+
+    m.a32 = 2.0 * (tmp1 + tmp2) * invs
+    m.a23 = 2.0 * (tmp1 - tmp2) * invs
+
 def quaternionsToEulers(QuaternionList q):
-    return Matrix4x4List.toEulers(quaternionsToMatrices(q))
+    cdef Py_ssize_t i
+    cdef Py_ssize_t amount = q.length
+    cdef EulerList e = EulerList(length = amount)
+    e.fill(0)
+
+    for i in range(amount):
+        quaternionToEulerInPlace(&e.data[i], &q.data[i])
+    return e
 
 def quaternionsToMatrices(QuaternionList q):
     cdef Py_ssize_t count = len(q)
@@ -83,7 +147,7 @@ def euler_lerp(EulerList eA, EulerList eB, DoubleList influences):
         out_eulerlist.data[i].z = eA.data[i].z * (1-influences.data[i]) + eB.data[i].z * influences.data[i]
         out_eulerlist.data[i].order = eA.data[i].order
 
-    return out_eulerlist 
+    return out_eulerlist
 
 def quaternion_lerp(QuaternionList qA, QuaternionList qB, DoubleList influences):
     cdef Py_ssize_t count = len(qA)
@@ -123,28 +187,119 @@ def quaternion_lerp(QuaternionList qA, QuaternionList qB, DoubleList influences)
 
     return out_Quat
 
+cdef quaternionNlerpInPlace(Quaternion *target, Quaternion *a, Quaternion *b, double factor):
+    cdef double dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+    cdef double oneMinusFactor = 1.0 - factor
+    if dot < 0:
+        target.w = oneMinusFactor * a.w + factor * -b.w
+        target.x = oneMinusFactor * a.x + factor * -b.x
+        target.y = oneMinusFactor * a.y + factor * -b.y
+        target.z = oneMinusFactor * a.z + factor * -b.z
+    else:
+        target.w = oneMinusFactor * a.w + factor * b.w
+        target.x = oneMinusFactor * a.x + factor * b.x
+        target.y = oneMinusFactor * a.y + factor * b.y
+        target.z = oneMinusFactor * a.z + factor * b.z
 
-def vector_lerp(Vector3DList vA, Vector3DList vB, DoubleList influences):
-    cdef Py_ssize_t count = max(vA.getLength(), vB.getLength())
+    quaternionNormalize_InPlace(target)
+
+def quaternionNlerpList(QuaternionList q1, QuaternionList q2, DoubleList factors):
     cdef Py_ssize_t i
-    cdef double s
-    cdef Vector3DList out_vectorlist = Vector3DList(length = count)
+    cdef Py_ssize_t amount = max(max(q1.length, q2.length), factors.length)
+    cdef QuaternionList result = QuaternionList(length = amount)
+    cdef VirtualQuaternionList _q1 = VirtualQuaternionList.create(q1, (1,0,0,0))
+    cdef VirtualQuaternionList _q2 = VirtualQuaternionList.create(q2, (1,0,0,0))
+    cdef VirtualDoubleList _factors = VirtualDoubleList.create(factors, 0)
 
-    for i in range(count):
-        s = 1-influences.data[i]
-        out_vectorlist.data[i].x = vA.data[i].x * s + vB.data[i].x * influences.data[i]
-        out_vectorlist.data[i].y = vA.data[i].y * s + vB.data[i].y * influences.data[i]
-        out_vectorlist.data[i].z = vA.data[i].z * s + vB.data[i].z * influences.data[i]
+    for i in range(amount):
+        quaternionNlerpInPlace(&result.data[i], _q1.get(i), _q2.get(i), _factors.get(i))
 
-    return out_vectorlist
+    return result
 
-def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList influences):
-    cdef Matrix4x4List m = matrix_lerp_skew(mA, mB, influences)
-    cdef VirtualVector3DList translations_out = VirtualVector3DList.create(extractMatrixTranslations(m), (0, 0, 0))
-    cdef VirtualEulerList rotations_out = VirtualEulerList.create(extractMatrixRotations(m), (0, 0, 0))
-    cdef VirtualVector3DList scales_out = VirtualVector3DList.create(vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), influences), (1, 1, 1))
+cdef vectorLerpInPlace(Vector3 *target, Vector3 *a, Vector3 *b, double factor):
+    cdef double oneMinusFactor = 1 - factor
 
-    return composeMatrices(len(mA), translations_out, rotations_out, scales_out)
+    target.x = oneMinusFactor * a.x + factor * b.x
+    target.y = oneMinusFactor * a.y + factor * b.y
+    target.z = oneMinusFactor * a.z + factor * b.z
+
+def vector_lerp(Vector3DList vA, Vector3DList vB, DoubleList factors):
+    cdef Py_ssize_t amount = max(max(vA.length, vB.length), factors.length)
+    cdef Py_ssize_t i
+    cdef VirtualDoubleList _factors = VirtualDoubleList.create(factors, 0)
+    cdef VirtualVector3DList _vA = VirtualVector3DList.create(vA, (0,0,0))
+    cdef VirtualVector3DList _vB = VirtualVector3DList.create(vB, (0,0,0))
+    cdef Vector3DList result = Vector3DList(length = amount)
+
+    for i in range(amount):
+        vectorLerpInPlace(result.data + i, _vA.get(i), _vB.get(i), _factors.get(i))
+
+    return result
+
+cdef matrixLerpInPlace(Matrix4 *target, Matrix4 *mA, Matrix4 *mB, double factor):
+    cdef Vector3 tA, tB, t
+    cdef Vector3 sA, sB, s
+    cdef Quaternion qA, qB, q
+    cdef Euler3 r
+
+    matrix4x4ToLocation(&tA, mA)
+    matrix4x4ToLocation(&tB, mB)
+
+    matrixToQuaternion(&qA, mA)
+    matrixToQuaternion(&qB, mB)
+
+    matrix4x4ToScale(&sA, mA)
+    matrix4x4ToScale(&sB, mB)
+
+    vectorLerpInPlace(&t, &tA, &tB, factor)
+    
+    quaternionNlerpInPlace(&q, &qA, &qB, factor)
+    quaternionToEulerInPlace(&r, &q)
+
+    vectorLerpInPlace(&s, &sA, &sB, factor)
+
+    setTranslationRotationScaleMatrix(target, &t, &r, &s)
+
+def matrix_lerp(Matrix4x4List mA, Matrix4x4List mB, DoubleList factors):
+    cdef Py_ssize_t i
+    cdef Py_ssize_t amount = max(max(mA.length, mB.length), factors.length)
+
+    cdef Matrix4x4List result = Matrix4x4List(length = amount)
+    cdef VirtualDoubleList _factors = VirtualDoubleList.create(factors, 0)
+
+    cdef VirtualQuaternionList qA = VirtualQuaternionList.create(mA.toQuaternions(), (1,0,0,0))
+    cdef VirtualQuaternionList qB = VirtualQuaternionList.create(mB.toQuaternions(), (1,0,0,0))
+
+    cdef VirtualVector3DList tA = VirtualVector3DList.create(extractMatrixTranslations(mA), (0,0,0))
+    cdef VirtualVector3DList tB = VirtualVector3DList.create(extractMatrixTranslations(mB), (0,0,0))
+
+    cdef VirtualVector3DList sA = VirtualVector3DList.create(extractMatrixScales(mA), (0,0,0))
+    cdef VirtualVector3DList sB = VirtualVector3DList.create(extractMatrixScales(mB), (0,0,0))
+
+    cdef Vector3 t
+    cdef Vector3 s
+    cdef Quaternion q
+    cdef Euler3 r
+
+    for i in range(amount):
+        vectorLerpInPlace(&t, tA.get(i), tB.get(i), _factors.get(i))
+        vectorLerpInPlace(&s, sA.get(i), sB.get(i), _factors.get(i))
+        quaternionNlerpInPlace(&q, qA.get(i), qB.get(i), _factors.get(i))
+        quaternionToEulerInPlace(&r, &q)
+        setTranslationRotationScaleMatrix(&result.data[i], &t, &r, &s)
+
+    return result
+
+def matrix_lerp_old(Matrix4x4List mA, Matrix4x4List mB, DoubleList factors):
+    cdef Vector3DList t = vector_lerp(extractMatrixTranslations(mA), extractMatrixTranslations(mB), factors)
+    cdef EulerList r = quaternionsToEulers(quaternionNlerpList(mA.toQuaternions(), mB.toQuaternions(), factors))
+    cdef Vector3DList s = vector_lerp(extractMatrixScales(mA), extractMatrixScales(mB), factors)
+
+    cdef VirtualVector3DList _t = VirtualVector3DList.create(t, (0,0,0))
+    cdef VirtualEulerList _r = VirtualEulerList.create(r, (0, 0, 0))
+    cdef VirtualVector3DList _s = VirtualVector3DList.create(s, (0,0,0))
+
+    return composeMatrices(len(mA), _t, _r, _s)
 
 def matrix_lerp_skew(Matrix4x4List matrix1, Matrix4x4List matrix2, DoubleList influences): # scale skewing issue
     cdef Py_ssize_t count = len(matrix1)
