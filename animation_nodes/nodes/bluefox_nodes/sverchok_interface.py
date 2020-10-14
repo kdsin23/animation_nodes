@@ -3,7 +3,6 @@ from bpy.props import *
 from collections import defaultdict
 from ... sockets.info import toIdName
 from ... base_types import AnimationNode
-from ... events import propertyChanged, executionCodeChanged
 
 dataByIdentifier = defaultdict(None)
 
@@ -126,6 +125,11 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
             return value[index]
         except:
             return None
+
+    def delete(self):
+        textObject = self.getTextObject()
+        if textObject is not None:
+            bpy.data.texts.remove(textObject)      
 
     def setValue(self, value):
         dataByIdentifier[self.identifier] = value
