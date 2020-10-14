@@ -43,6 +43,8 @@ class SverchokExporterNode(bpy.types.Node, AnimationNode):
         text.write(code)
 
     def execute(self, value, *args):
+        if self.inputs[0].is_linked:
+            self.inputs[0].removeLinks()
         self.setValue(args)
 
     def setValue(self, value):
