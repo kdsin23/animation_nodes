@@ -36,7 +36,6 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
             for i in range(self.amount):
                 self.newOutput("Generic", f"data_{i}", f"data_{i}")
         if self.dataDirection == "EXPORT":
-            self.newInput("Generic", "Value", "value", hide = True)
             for i in range(self.amount):
                 self.newInput("Generic", f"data_{i}", f"data_{i}")
 
@@ -48,7 +47,7 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
             self.invokeFunction(row2, "generateTextFile", text = "Generate Script", 
                     description = "Generate script for sverchok", icon = "TEXT")
         else:
-            row2.label(text = self.getTextName(), icon = "TEXT")            
+            row2.label(text = self.getTextName(), icon = "TEXT")           
 
     def drawLabel(self):
         for item in dataDirectionItems:
@@ -71,24 +70,31 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
                 else:
                     code += f"data_{i}, "
             code += "]\n"
-            code += f'bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"].setValue(container)'
+            code += f'anNode = bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"]\n'
+            code += 'if anNode:\n'
+            code += '\tanNode.setValue(container)\n'
 
         elif self.dataDirection == "EXPORT":
             code = '"""\n'
             code += 'in input s\n'
             for i in range(self.amount):
                 code += f"out data_{i} s\n"
-            code += '"""\n'
-            code += f'container = bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"].getValue()\n'
+            code += '"""\n\n'
             for i in range(self.amount):
-                code += f'data_{i} = [container[{i}]]\n'
+                code += f'data_{i} = []\n'
+            code += f'\nanNode = bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"]\n'
+            code += 'if anNode:\n'
+            code += '\tcontainer = anNode.getValue()\n'
+            code += '\tif container:\n'
+            for i in range(self.amount):
+                code += f'\t\tdata_{i} = [container[{i}]]\n'
 
         text = self.getTextObject()
         if text is not None:
             text.clear()
             text.write(code)
             return True
-        else:    
+        else:
             self.raiseErrorMessage("No Script Found")
             return False
 
@@ -101,9 +107,9 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
 
     def getTextName(self):
         if self.dataDirection == "IMPORT":
-            return self.name + "_Import_Script"
+            return "Import_Script_" + self.name + ".py"
         elif self.dataDirection == "EXPORT":
-            return self.name + "_Export_Script"        
+            return "Export_Script_" + self.name + ".py"        
 
     def execute(self, *args):
         if self.dataDirection == "IMPORT":
@@ -113,9 +119,7 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
                 result.append(self.processImportedValue(value, i))
             return tuple(result)
         elif self.dataDirection == "EXPORT":
-            if self.inputs[0].is_linked:
-                self.inputs[0].removeLinks()
-            self.setValue(args[1:])
+            self.setValue(args)
 
     def processImportedValue(self, value, index):
         try:
