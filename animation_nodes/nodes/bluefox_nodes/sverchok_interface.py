@@ -70,9 +70,11 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
                 else:
                     code += f"data_{i}, "
             code += "]\n"
-            code += f'anNode = bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"]\n'
-            code += 'if anNode:\n'
-            code += '\tanNode.setValue(container)\n'
+            code += f'anTree = bpy.data.node_groups.get("{nodeTreeName}")\n'
+            code += 'if anTree:\n'
+            code += f'\tanNode = anTree.nodes.get("{nodeName}")\n'
+            code += '\tif anNode:\n'
+            code += '\t\tanNode.setValue(container)\n'
 
         elif self.dataDirection == "EXPORT":
             code = '"""\n'
@@ -82,12 +84,14 @@ class SverchokInterfaceNode(bpy.types.Node, AnimationNode):
             code += '"""\n\n'
             for i in range(self.amount):
                 code += f'data_{i} = []\n'
-            code += f'\nanNode = bpy.data.node_groups["{nodeTreeName}"].nodes["{nodeName}"]\n'
-            code += 'if anNode:\n'
-            code += '\tcontainer = anNode.getValue()\n'
-            code += '\tif container:\n'
+            code += f'\nanTree = bpy.data.node_groups.get("{nodeTreeName}")\n'
+            code += 'if anTree:\n'    
+            code += f'\tanNode = anTree.nodes.get("{nodeName}")\n'
+            code += '\tif anNode:\n'
+            code += '\t\tcontainer = anNode.getValue()\n'
+            code += '\t\tif container:\n'
             for i in range(self.amount):
-                code += f'\t\tdata_{i} = [container[{i}]]\n'
+                code += f'\t\t\tdata_{i} = [container[{i}]]\n'
 
         text = self.getTextObject()
         if text is not None:
