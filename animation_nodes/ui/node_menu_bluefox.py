@@ -64,7 +64,7 @@ class ExtrafalloffsMenu(bpy.types.Menu):
         layout = self.layout
         insertNode(layout, "an_Formulafalloff", "Formula Falloff")
         insertNode(layout, "an_RadialFalloff_old", "Radial Falloff(old)")
-        insertNode(layout, "an_Texturefalloff", "Texture falloff")
+        insertNode(layout, "an_TexturefalloffOld", "Texture falloff(old)")
         insertNode(layout, "an_wavefalloff", "Wave falloff")
 
 class MiscellaneousMenu(bpy.types.Menu):

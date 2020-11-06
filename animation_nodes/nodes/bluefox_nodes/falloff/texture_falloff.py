@@ -14,9 +14,9 @@ modeItems = [
     ("GREY", "Grey", "Grey Strength", "", 4)
 ]
 
-class Texturefalloff(bpy.types.Node, AnimationNode):
-    bl_idname = "an_Texturefalloff"
-    bl_label = "Texture falloff"
+class TexturefalloffOld(bpy.types.Node, AnimationNode):
+    bl_idname = "an_TexturefalloffOld"
+    bl_label = "Texture falloff (old)"
 
     mode : EnumProperty(name = "Use", default = "GREY",
         items = modeItems, update = AnimationNode.refresh)

@@ -107,8 +107,8 @@ def offset3DVectors(Vector3DList vectors, VirtualVector3DList offsets, FloatList
         vectors.data[i].z += offset.z * influence
 
 def calculateVectorDotProducts(Py_ssize_t amount,
-                     VirtualVector3DList vectors1,
-                     VirtualVector3DList vectors2):
+                        VirtualVector3DList vectors1,
+                        VirtualVector3DList vectors2):
     cdef Py_ssize_t i
     cdef DoubleList dotProducts = DoubleList(length = amount)
     for i in range(amount):

@@ -19,8 +19,8 @@ class VectorDotProductNode(bpy.types.Node, AnimationNode):
 
     def getExecutionCode(self, required):
         if self.useListA or self.useListB:
-            yield "amount = VirtualVector3DList.getMaxRealLength(a, b)"
             yield "_vA, _vB = VirtualVector3DList.createMultiple((a, (0,0,0)), (b, (0,0,0)))"
+            yield "amount = VirtualVector3DList.getMaxRealLength(_vA, _vB)"
             yield "dotProducts = AN.nodes.vector.c_utils.calculateVectorDotProducts(amount, _vA, _vB)"
         else:
             yield "dotProduct = a.dot(b)"
