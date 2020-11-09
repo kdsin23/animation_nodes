@@ -3,15 +3,14 @@ import numpy as np
 from bpy.props import *
 from .... events import propertyChanged
 from .... base_types import AnimationNode
-from . utils.mcalgorithm import isosurface_np
+from . utils.marching_cubes import isoSurface
 from .... data_structures.meshes.validate import createValidEdgesList
 from .... data_structures import LongList, Vector3DList, PolygonIndicesList, EdgeIndicesList, Mesh
 
 fieldTypeItems = [
     ("FALLOFF", "Falloff", "Use falloff field", "", 0),
     ("FORMULA", "Formula", "Use formula field", "", 1),
-    ("ARRAY", "Array", "Use array field", "", 2),
-    ("CUSTOM", "Custom", "Use custom function field", "", 3)
+    ("CUSTOM", "Custom", "Use custom function field", "", 2)
 ]
 
 class MarchingCubes(bpy.types.Node, AnimationNode):
@@ -26,27 +25,33 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
         if self.fieldType == "FALLOFF":
             self.newInput("Falloff", "Field", "field")
         elif self.fieldType == "FORMULA":
-            self.newInput("Text", "Field", "field", value = "cos(x*3)+cos(y*3)+cos(z*3)", defaultDrawType = "PROPERTY_ONLY")
-        elif self.fieldType == "ARRAY":
-            self.newInput("NDArray", "Field", "field")    
+            self.newInput("Text", "Field", "field", value = "cos(x*3)+cos(y*3)+cos(z*3)", defaultDrawType = "PROPERTY_ONLY")   
         else:
             self.newInput("Generic", "Field", "field")
-        self.newInput("Vector List", "Bounding Box","boundingBox")
-        self.newInput("Integer", "Samples","samples", minValue = 0)            
-        self.newInput("Float", "ISO Value","isoValue", value = 0.3)
+        self.newInput("Matrix", "Transform","transform")
+        self.newInput("Integer", "Samples","samples", minValue = 0, value = 10)
+        self.newInput("Float", "Threshold","threshold", value = 0.3)
 
         self.newOutput("an_MeshSocket", "Mesh", "meshData")
 
     def draw(self, layout):
         layout.prop(self, "fieldType", text = "")
     
-    def execute(self, field, boundingBox, samples, isoValue):
-        if len(boundingBox)<8 or field is None:
+    def execute(self, field, transform, samples, threshold):
+        if field is None:
             return Mesh()
-        else:    
+        else:
             try:
+                unityCube = [(-1.0000, -1.0000, -1.0000),(-1.0000, -1.0000, 1.0000),
+                    (-1.0000, 1.0000, -1.0000),(-1.0000, 1.0000, 1.0000),
+                    (1.0000, -1.0000, -1.0000),(1.0000, -1.0000, 1.0000),
+                    (1.0000, 1.0000, -1.0000),(1.0000, 1.0000, 1.0000)]
+
+                boundingBox = Vector3DList.fromValues(unityCube)
+                boundingBox.transform(transform)
+
                 evaluatedField, b1n, b2n = self.evaluateField(boundingBox, samples, field)
-                vertices, faces = isosurface_np(evaluatedField.reshape((samples, samples, samples)), isoValue)
+                vertices, faces = isoSurface(evaluatedField, threshold)
                 vertexLocations = Vector3DList.fromValues((vertices / samples) * (b2n - b1n) + b1n)
                 polygonIndices = PolygonIndicesList.fromValues(faces)
                 edgeIndices = createValidEdgesList(polygons = polygonIndices)
@@ -54,8 +59,8 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
                 materialIndices.fill(0)
                 return Mesh(vertexLocations, edgeIndices, polygonIndices, materialIndices, skipValidation = False)
             except Exception as e:
-                print("MarchingCubes Error:" + str(e))
-                self.raiseErrorMessage("Error!")
+                #print("MarchingCubes Error:" + str(e))
+                self.raiseErrorMessage("Mesh generation failed")
                 return Mesh()
 
     def evaluateField(self, boundingBox, samples, field):
@@ -67,7 +72,7 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
         zRange = np.linspace(b1[2], b2[2], num=samples)
         grid = np.vstack([np.meshgrid(xRange, yRange, zRange, indexing='ij')]).reshape(3,-1).T
 
-        evaluatedField = self.getField(field, grid)
+        evaluatedField = self.getField(field, grid).reshape((samples, samples, samples))
         return evaluatedField, b1n, b2n
 
     def getBounds(self, vertices):
@@ -86,9 +91,7 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
             falloff_strengths = falloffEvaluator.evaluateList(vectors)
             return falloff_strengths.asNumpyArray().astype('float32')
         elif self.fieldType == "FORMULA":
-            return self.evaluateFormula(field,grid,x,y,z)
-        elif self.fieldType == "ARRAY":
-            return field    
+            return self.evaluateFormula(field,grid,x,y,z)  
         else:
             return field(x,y,z)
                 
