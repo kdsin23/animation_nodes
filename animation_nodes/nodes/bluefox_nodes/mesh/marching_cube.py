@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 from bpy.props import *
 from .... events import propertyChanged
-from .... base_types import AnimationNode
+from .... base_types import AnimationNode, VectorizedSocket
 from . utils.marching_cubes import isoSurface
 from .... data_structures.meshes.validate import createValidEdgesList
 from .... data_structures import LongList, Vector3DList, PolygonIndicesList, EdgeIndicesList, Mesh
@@ -18,6 +18,9 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
     bl_label = "Marching Cubes"
     errorHandlingType = "EXCEPTION"
 
+    codeEffects = [VectorizedSocket.CodeEffect]
+    useThresholdList: VectorizedSocket.newProperty()
+
     fieldType: EnumProperty(name = "Field Type", default = "FALLOFF",
         items = fieldTypeItems, update = AnimationNode.refresh)  
 
@@ -30,13 +33,15 @@ class MarchingCubes(bpy.types.Node, AnimationNode):
             self.newInput("Generic", "Field", "field")
         self.newInput("Matrix", "Transform","transform")
         self.newInput("Integer", "Samples","samples", minValue = 0, value = 10)
-        self.newInput("Float", "Threshold","threshold", value = 0.3)
+        self.newInput(VectorizedSocket("Float", "useThresholdList",
+            ("Threshold", "threshold"),("Thresholds", "threshold")), value = 0.3)
 
-        self.newOutput("an_MeshSocket", "Mesh", "meshData")
+        self.newOutput(VectorizedSocket("Mesh", "useThresholdList",
+            ("Mesh", "mesh"), ("Mesh List", "mesh")))
 
     def draw(self, layout):
         layout.prop(self, "fieldType", text = "")
-    
+      
     def execute(self, field, transform, samples, threshold):
         if field is None:
             return Mesh()
