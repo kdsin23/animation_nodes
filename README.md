@@ -9,4 +9,4 @@ Fork from [AnimationNodes](https://github.com/JacquesLucke/animation_nodes) crea
 |[MacOS Build](https://github.com/harisreedhar/AN_BLUEFOX/releases/download/AN-bluefox-cd-build/animation_nodes_v2_2_macOS_py37.zip)         |
 |[Windows Build](https://github.com/harisreedhar/AN_BLUEFOX/releases/download/AN-bluefox-cd-build/animation_nodes_v2_2_windows_py37.zip)          |`
 
-Notice: Animation nodes now supports extensions as separate addon. So, additional nodes will be available as [separate addon](https://github.com/harisreedhar/an_bluefox_extension). you can install it along with official animation nodes build.
+Notice: Animation nodes now supports extensions as separate addon. So, additional nodes of this branch will be available as [separate addon](https://github.com/harisreedhar/an_bluefox_extension). you can install it along with official animation nodes build.
